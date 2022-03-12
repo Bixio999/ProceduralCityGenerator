@@ -1,17 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 public class ProceduralCityGenerator : MonoBehaviour
 {
     public GameObject terrain;
     public int RandomSeed = 0;
     public bool instantQuit = true;
-
-    // Cellular Automata parameters
-    // public int noise_density = 50;
-    // public int iterations = 5;
-    // public int neighboorThreshold = 4;
+    public bool savePopulationDensity = false;
 
     // PERLIN NOISE PARAMETERS
     public float scalingFactor = 2;
@@ -25,14 +22,20 @@ public class ProceduralCityGenerator : MonoBehaviour
     public int neighborhoodRadius = 2;
     public float popDensityWaterThreshold = 0.3f;
     public float mapBoundaryScale = 0.8f;
+    public int cityRadius = 250;
+    public float popDensityHeightTolerance = 1f;
+    public int popDensityPNOctaves = 3;
+    public float popDensityPNExponent = 2f;
+    public float popDensityPNScaling = 2f;
 
-    public GameObject cube;
+    public GameObject player;
 
     void Start()
     {
         if (RandomSeed == 0)
             RandomSeed = (int) System.DateTime.Now.Ticks;
         Random.InitState(RandomSeed);
+        Debug.Log(RandomSeed);
 
         Terrain t = terrain.GetComponent<Terrain> ();
 		TerrainData td = t.terrainData;
@@ -46,7 +49,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         float [,] map = InputMapGenerator.generatePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
 
-        float [,] populationMap = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale);
+        (float[,] populationMap, int cityCentreX, int cityCentreY) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         // UnityEditor.EditorApplication.isPlaying = false;
 
@@ -62,24 +65,19 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                 if (map[scaled_i, scaled_j] == 0)
                 {
-                    alphaMap[i,j,0] = 0;
                     alphaMap[i,j,1] = 1;
-                    alphaMap[i,j,2] = 0;
                 }
-                else if (populationMap[scaled_i, scaled_j] == 1)
+                else if (populationMap[scaled_i, scaled_j] > 0)
                 {
-                    alphaMap[i,j,0] = 0.4f;
-                    alphaMap[i,j,1] = 0;
-                    alphaMap[i,j,2] = 0.6f;
+                    float value = populationMap[scaled_i, scaled_j];
+
+                    alphaMap[i,j,0] = 1 - value;
+                    alphaMap[i,j,2] = value;
                 }
                 else
                 {
                     alphaMap[i,j,0] = 1;
-                    alphaMap[i,j,1] = 0;
-                    alphaMap[i,j,2] = 0;
                 }
-
-                // alphaMap[i,j,0] = (map[scaled_i,scaled_j] == 0 ? 0 : 1);
 
                 // Debug.LogFormat("i = {0}, j = {1}, scaled_i = {2}, scaled_j = {3}, map value = {4}", i,j,scaled_i, scaled_j, map[scaled_i, scaled_j]);
             }
@@ -88,9 +86,10 @@ public class ProceduralCityGenerator : MonoBehaviour
         td.SetAlphamaps(0,0,alphaMap);
         td.SetHeights(0,0, map);
 
-        
-
         spawnPlayer(map, x, y);
+
+        if (savePopulationDensity)
+            SaveMatrixAsPNG(populationMap, RandomSeed);
 
         if (instantQuit)
             UnityEditor.EditorApplication.isPlaying = false;
@@ -114,8 +113,32 @@ public class ProceduralCityGenerator : MonoBehaviour
         position.x = Mathf.Clamp(position.x + this.transform.position.x, this.transform.position.x, - this.transform.position.x);
         position.z = Mathf.Clamp(position.z + this.transform.position.z, this.transform.position.z, - this.transform.position.z);
 
-        cube.transform.position = position;
+        player.transform.position = position;
     }
 
-    
+    public static void TextureFromColourMap(Color[] colourMap, int width, int height, int seed) {
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+        texture.filterMode = FilterMode.Point;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.SetPixels (colourMap);
+        texture.Apply ();
+
+        byte[] bytes = texture.EncodeToPNG();
+        var dirPath = Application.dataPath + "/../SaveImages/";
+        if(!Directory.Exists(dirPath)) {
+            Directory.CreateDirectory(dirPath);
+        }
+        File.WriteAllBytes(dirPath + "PopulationDensity-" + seed + ".png", bytes);
+    }
+    public static void SaveMatrixAsPNG(float[,] matrix, int seed) {
+        int width = matrix.GetLength (0);
+        int height = matrix.GetLength (1);
+        Color[] colourMap = new Color[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                colourMap [y * width + x] = Color.Lerp (Color.black, Color.white, matrix [x, y]);
+            }
+        }
+        TextureFromColourMap (colourMap, width, height, seed);
+    }
 }

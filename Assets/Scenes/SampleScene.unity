@@ -329,8 +329,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain: {fileID: 1969773139}
-  RandomSeed: 0
+  RandomSeed: 1986503940
   instantQuit: 1
+  savePopulationDensity: 1
   scalingFactor: 2
   perlinNoiseOctaves: 5
   perlinNoiseExponent: 4
@@ -339,7 +340,12 @@ MonoBehaviour:
   neighborhoodRadius: 50
   popDensityWaterThreshold: 0.3
   mapBoundaryScale: 0.7
-  cube: {fileID: 2139394633}
+  cityRadius: 500
+  popDensityHeightTolerance: 1.8
+  popDensityPNOctaves: 4
+  popDensityPNExponent: 1
+  popDensityPNScaling: 5
+  player: {fileID: 2139394633}
 --- !u!4 &1696565347
 Transform:
   m_ObjectHideFlags: 0

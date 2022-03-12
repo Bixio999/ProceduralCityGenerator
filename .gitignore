@@ -514,3 +514,4 @@ crashlytics-build.properties
 
 Assets/*
 !Assets/Scenes
+SaveImages

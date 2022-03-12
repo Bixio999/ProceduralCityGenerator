@@ -4,79 +4,7 @@ using UnityEngine;
 
 public class InputMapGenerator
 {
-
-    // CELLULAR AUTOMATA PROCEDURAL GENERATION
-
-    public static float[,] generateCellularAutomataMap(int w, int h, float scalingFactor, int noiseDensity, int iterations, int neighboorThreshold)
-    {
-        int xCut = ((int)Mathf.Floor (w * scalingFactor / 100));
-		int yCut = ((int)Mathf.Floor (h * scalingFactor / 100));
-
-        float [,] noise_map = new float [xCut, yCut];
-
-        for (int i = 0; i < yCut; i++)
-        {
-            for (int j = 0; j < xCut; j++)
-            {
-                noise_map[i, j] = (Random.value * 100 >= noiseDensity? 1 : 0);
-            }
-        }
-
-        noise_map = cellularAutomata(noise_map, xCut, yCut, iterations, neighboorThreshold);
-
-        float [,] output = new float[w, h];
-
-        for (int i = 0; i < h; i++)
-        {
-            for (int j = 0; j < w; j++)
-            {
-                int scaled_i = Mathf.Clamp(Mathf.FloorToInt(i * scalingFactor / 100), 0, yCut - 1);
-                int scaled_j = Mathf.Clamp(Mathf.FloorToInt(j * scalingFactor / 100), 0, xCut - 1);
-
-                float value = (float) noise_map[scaled_i, scaled_j];
-
-                output[i,j] = value;
-            }
-        }
-        return output;
-    }
-
-    private static float[,] cellularAutomata(float[,] map, int w, int h, int iterations, int neighboorThreshold)
-    {
-        float[,] tempMap;
-
-        int neighboorCounter, x, y;
-        
-        for (int it = 0; it < iterations; it++)
-        {
-            tempMap = new float [w, h];
-            for (int i = 0; i < h; i++ )
-            {
-                for (int j = 0; j < w; j++)
-                {
-                    neighboorCounter = 0;
-                    for (int k = -1; k <= 1; k++)
-                    {
-                        for (int z = -1; z <= 1; z++)
-                        {
-                            y = i + k;
-                            x = j + z;
-
-                            if (isValidPosition(x, y, w, h))
-                                neighboorCounter += (int) map[y,x];  
-                        }
-                    }
-                    if (neighboorCounter >= neighboorThreshold)
-                        tempMap[i, j] = 1;
-                    else
-                        tempMap[i,j] = 0;
-                }
-            }
-            map = tempMap;
-        }
-
-        return map;
-    }
+    private const float E = 2.7182818284590451f;
 
     private static bool isValidPosition(int x, int y, int w, int h)
     {
@@ -165,9 +93,11 @@ public class InputMapGenerator
 
     // POPULATION DENSITY MAP GENERATION
 
-    public static float [,] createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale)
+    public static (float [,] populationMap, int cityCentreX, int cityCentreY) createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale, float cityRadius, float heightTolerance, float PNScaling, int PNOctaves, float perlinNoiseExponent)
     {
         int cityCentreX, cityCentreY;
+
+        // CITY ORIGIN DECISION
 
         do
         {
@@ -177,25 +107,57 @@ public class InputMapGenerator
 
         float[,] populationMap = new float[h,w];
 
-        for (int i = - originRadius; i <= originRadius; i++)
-        {
-            for (int j = - originRadius; j <= originRadius; j++)
-            {
-                if (isValidPosition(j + cityCentreX, i + cityCentreY, w, h))
-                {
-                    if (heightmap[i + cityCentreY, j + cityCentreX] > 0)
-                        populationMap[i + cityCentreY, j + cityCentreX] = 1;
-                }
-            }
-        }        
+        // POPULATION DENSITY GENERATION
 
-        return populationMap;
+        float value, PNvalue, xCoord, yCoord, normalizer, amplitude;
+        int alpha;
+
+        float amplifier = Random.value * 1000;
+        Vector2 perlinNoiseOrigin = Random.insideUnitCircle * amplifier;
+
+        for(int i = 0; i < h; i++)
+        {
+            for(int j = 0; j < w; j++)
+            {
+                value = 0f;
+
+                xCoord = perlinNoiseOrigin.x + (float) j / w * PNScaling;
+                yCoord = perlinNoiseOrigin.y + (float) i / h * PNScaling;
+
+                PNvalue = 0f;
+                normalizer = 0f;
+
+                if (heightmap[i,j] != 0)
+                {
+                    value = distanceToCityOriginProbability(cityCentreX, cityCentreY, j, i, cityRadius);
+                    value *= heightToCityCentreProbability(heightmap[cityCentreY, cityCentreX], heightmap[i,j], slopeThreshold, heightTolerance);
+
+                    for (int k = 0; k < PNOctaves; k++)
+                    {
+                        alpha = (int) Mathf.Pow(2, k);
+                        amplitude = 1 / ((float) alpha);
+
+                        normalizer += amplitude;
+
+                        PNvalue += amplitude * Mathf.Clamp01(Mathf.PerlinNoise(alpha * xCoord, alpha * yCoord));
+                    }
+                    if (PNvalue > 0)
+                    {
+                        PNvalue /= normalizer;
+                        PNvalue = Mathf.Pow(PNvalue, perlinNoiseExponent);
+                        value *= (PNvalue);
+                    }
+
+                    populationMap[i,j] = value;
+                }                    
+            }
+        } 
+
+        return (populationMap, cityCentreX, cityCentreY);
     }
 
     private static bool isCityCentreValid(int centreX, int centreY, float[,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold)
     {
-        Debug.LogFormat("cityCentre = ({0}, {1})", centreX, centreY);
-
         float centreValue = heightmap[centreY, centreX];
         if (centreValue == 0)
             return false;
@@ -222,7 +184,25 @@ public class InputMapGenerator
         if (waterCounter > Mathf.RoundToInt(Mathf.Pow(originRadius * 2, 2) * waterThreshold))
             return false;
 
+        Debug.LogFormat("cityCentre = ({0}, {1})", centreX, centreY);
         return true;
     }
 
+    private static float distanceToCityOriginProbability(int centreX, int centreY, int x, int y, float distanceThreshold)
+    {
+        // Euclidean distance
+        float distance = Mathf.Sqrt(Mathf.Pow(Mathf.Abs(centreX - x), 2) + Mathf.Pow(Mathf.Abs(centreY - y), 2));
+
+        // "Cosine down to zero" distance function 
+        return distance <= distanceThreshold? Mathf.Clamp01((Mathf.Cos(Mathf.PI / distanceThreshold * distance) + 1) / 2) : 0;
+    }
+
+    private static float heightToCityCentreProbability(float cityCentreHeight, float height, float slopeThreshold, float heightTolerance)
+    {
+        float heightDifference = Mathf.Abs(cityCentreHeight - height);
+
+        float sigma = slopeThreshold * heightTolerance;
+
+        return Mathf.Clamp01(Mathf.Pow(E, - Mathf.Pow(heightDifference, 2) / Mathf.Pow(2 * sigma, 2)));
+    }
 }
