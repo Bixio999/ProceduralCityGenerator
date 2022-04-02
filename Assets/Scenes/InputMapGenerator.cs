@@ -93,7 +93,7 @@ public class InputMapGenerator
 
     // POPULATION DENSITY MAP GENERATION
 
-    public static (float [,] populationMap, int cityCentreX, int cityCentreY) createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale, float cityRadius, float heightTolerance, float PNScaling, int PNOctaves, float perlinNoiseExponent)
+    public static (float [,] populationMap, Vector2 cityCentre) createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale, float cityRadius, float heightTolerance, float PNScaling, int PNOctaves, float perlinNoiseExponent)
     {
         int cityCentreX, cityCentreY;
 
@@ -153,7 +153,7 @@ public class InputMapGenerator
             }
         } 
 
-        return (populationMap, cityCentreX, cityCentreY);
+        return (populationMap, new Vector2(cityCentreX, cityCentreY));
     }
 
     private static bool isCityCentreValid(int centreX, int centreY, float[,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold)

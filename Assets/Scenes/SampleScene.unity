@@ -329,9 +329,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain: {fileID: 1969773139}
-  RandomSeed: 1986503940
-  instantQuit: 1
-  savePopulationDensity: 1
+  RandomSeed: 0
+  instantQuit: 0
+  savePopulationDensity: 0
   scalingFactor: 2
   perlinNoiseOctaves: 5
   perlinNoiseExponent: 4

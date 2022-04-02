@@ -10,6 +10,9 @@ public class ProceduralCityGenerator : MonoBehaviour
     public bool instantQuit = true;
     public bool savePopulationDensity = false;
 
+
+        // TODO SET RANGES FOR PARAMETERS  
+
     // PERLIN NOISE PARAMETERS
     public float scalingFactor = 2;
     public int perlinNoiseOctaves = 5;
@@ -49,7 +52,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         float [,] map = InputMapGenerator.generatePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
 
-        (float[,] populationMap, int cityCentreX, int cityCentreY) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
+        (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         // UnityEditor.EditorApplication.isPlaying = false;
 
@@ -97,21 +100,21 @@ public class ProceduralCityGenerator : MonoBehaviour
 
     private void spawnPlayer(float[,] map, int w, int h)
     {
-        Vector3 position = Random.insideUnitSphere * w;
+        Vector3 position = Random.insideUnitSphere * (w - 1);
         position.x = Mathf.Abs(position.x);
         position.z = Mathf.Abs(position.z);
-        position.y = 100;
+        position.y = 0;
 
-        while(map[(int)position.x, (int)position.z] == 0)
+        while(map[Mathf.RoundToInt(position.x), Mathf.RoundToInt(position.z)] == 0)
         {
-            position = Random.insideUnitSphere * w;
+            position = Random.insideUnitSphere * (w - 1);
             position.x = Mathf.Abs(position.x);
             position.z = Mathf.Abs(position.z);
-            position.y = 100;
         }
 
         position.x = Mathf.Clamp(position.x + this.transform.position.x, this.transform.position.x, - this.transform.position.x);
         position.z = Mathf.Clamp(position.z + this.transform.position.z, this.transform.position.z, - this.transform.position.z);
+        position.y = Terrain.activeTerrain.SampleHeight(position) + 2;
 
         player.transform.position = position;
     }
