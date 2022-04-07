@@ -25,16 +25,17 @@ public interface IQuadTreeObject{
 	Vector2 GetPosition();
 }
 public class QuadTree<T> where T : IQuadTreeObject {
+	private int m_maxObjectCount;
 	private List<T> m_storedObjects;
 	private Rect m_bounds;
 	private QuadTree<T>[] cells;
 	private int size;
 
-	public QuadTree(Rect bounds){
+	public QuadTree(int maxSize, Rect bounds){
 		m_bounds = bounds;
+		m_maxObjectCount = maxSize;
 		cells = new QuadTree<T>[4];
-		m_storedObjects = new List<T>();
-		size = 0;
+		m_storedObjects = new List<T>(maxSize);
 	}
 	public void Insert(T objectToInsert){
 
@@ -47,27 +48,30 @@ public class QuadTree<T> where T : IQuadTreeObject {
 			return;
 		} 
 		m_storedObjects.Add(objectToInsert);
-		//Split the quad into 4 sections
-		if(cells[0] == null){
-			float subWidth = (m_bounds.width / 2f);
-			float subHeight = (m_bounds.height / 2f);
-			float x = m_bounds.x;
-			float y = m_bounds.y;
-			cells[0] = new QuadTree<T>(new Rect(x + subWidth, y, subWidth, subHeight));
-			cells[1] = new QuadTree<T>(new Rect(x, y, subWidth, subHeight));
-			cells[2] = new QuadTree<T>(new Rect(x, y + subHeight, subWidth, subHeight));
-			cells[3] = new QuadTree<T>(new Rect(x + subWidth, y + subHeight, subWidth, subHeight));
-		}
-		//Reallocate this quads objects into its children
-		int i = m_storedObjects.Count-1;; 
-		while(i >= 0){
-			T storedObj = m_storedObjects[i];
-			int iCell = GetCellToInsertObject(storedObj.GetPosition());
-			if(iCell > -1){
-				cells[iCell].Insert(storedObj);
+		//Objects exceed the maximum count
+		if(m_storedObjects.Count > m_maxObjectCount){
+			//Split the quad into 4 sections
+			if(cells[0] == null){
+				float subWidth = (m_bounds.width / 2f);
+				float subHeight = (m_bounds.height / 2f);
+				float x = m_bounds.x;
+				float y = m_bounds.y;
+				cells[0] = new QuadTree<T>(m_maxObjectCount,new Rect(x + subWidth, y, subWidth, subHeight));
+				cells[1] = new QuadTree<T>(m_maxObjectCount,new Rect(x, y, subWidth, subHeight));
+				cells[2] = new QuadTree<T>(m_maxObjectCount,new Rect(x, y + subHeight, subWidth, subHeight));
+				cells[3] = new QuadTree<T>(m_maxObjectCount,new Rect(x + subWidth, y + subHeight, subWidth, subHeight));
 			}
-			m_storedObjects.RemoveAt(i);
-			i--;
+			//Reallocate this quads objects into its children
+			int i = m_storedObjects.Count-1;; 
+			while(i >= 0){
+				T storedObj = m_storedObjects[i];
+				int iCell = GetCellToInsertObject(storedObj.GetPosition());
+				if(iCell > -1){
+					cells[iCell].Insert(storedObj);
+				}
+				m_storedObjects.RemoveAt(i);
+				i--;
+			}
 		}
 	}
 
@@ -147,10 +151,26 @@ public class QuadTree<T> where T : IQuadTreeObject {
 	    return xOverlap && yOverlap;
 	}
 	public void DrawDebug(){
-            Gizmos.DrawLine(new Vector3(m_bounds.x,0, m_bounds.y),new Vector3(m_bounds.x,0,m_bounds.y+ m_bounds.height));
-            Gizmos.DrawLine(new Vector3(m_bounds.x,0, m_bounds.y),new Vector3(m_bounds.x+m_bounds.width,0,m_bounds.y));
-			Gizmos.DrawLine(new Vector3(m_bounds.x+m_bounds.width,0, m_bounds.y),new Vector3(m_bounds.x+m_bounds.width,0,m_bounds.y+ m_bounds.height));
-            Gizmos.DrawLine(new Vector3(m_bounds.x,0, m_bounds.y+m_bounds.height),new Vector3(m_bounds.x+m_bounds.width,0,m_bounds.y+m_bounds.height));
+			Vector3 topLeft = new Vector3(m_bounds.x, 0, m_bounds.y);
+			topLeft += Terrain.activeTerrain.GetPosition();
+			topLeft.y = Terrain.activeTerrain.SampleHeight(topLeft);
+
+			Vector3 topRight = new Vector3(m_bounds.x + m_bounds.width, 0, m_bounds.y);
+			topRight += Terrain.activeTerrain.GetPosition();
+			topRight.y = Terrain.activeTerrain.SampleHeight(topRight);
+
+			Vector3 bottomLeft = new Vector3(m_bounds.x, 0, m_bounds.y + m_bounds.height);
+			bottomLeft += Terrain.activeTerrain.GetPosition();
+			bottomLeft.y = Terrain.activeTerrain.SampleHeight(bottomLeft);
+
+			Vector3 bottomRight = new Vector3(m_bounds.x + m_bounds.width, 0, m_bounds.y + m_bounds.height);
+			bottomRight += Terrain.activeTerrain.GetPosition();
+			bottomRight.y = Terrain.activeTerrain.SampleHeight(bottomRight);
+
+			Debug.DrawLine(topLeft, topRight, Color.blue, Mathf.Infinity);
+			Debug.DrawLine(topRight, bottomRight, Color.blue, Mathf.Infinity);
+			Debug.DrawLine(bottomRight, bottomLeft, Color.blue, Mathf.Infinity);
+			Debug.DrawLine(bottomLeft, topLeft, Color.blue, Mathf.Infinity);
 		if(cells[0] != null){			
 			for(int i  = 0; i < cells.Length; i++)
 			{

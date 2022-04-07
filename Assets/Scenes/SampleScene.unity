@@ -329,9 +329,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain: {fileID: 1969773139}
-  RandomSeed: 0
-  instantQuit: 0
+  RandomSeed: 597054182
+  instantQuit: 1
   savePopulationDensity: 0
+  saveRoads: 0
+  saveHDRoads: 1
+  player: {fileID: 2139394633}
   scalingFactor: 2
   perlinNoiseOctaves: 5
   perlinNoiseExponent: 4
@@ -345,7 +348,16 @@ MonoBehaviour:
   popDensityPNOctaves: 4
   popDensityPNExponent: 1
   popDensityPNScaling: 5
-  player: {fileID: 2139394633}
+  iterationLimit: 70
+  rule: 0
+  waterPruningFactor: 0.6
+  maximalAngleToFix: 30
+  neighborhoodFactor: 0.331
+  defaultDelay: 5
+  probabilityToBranchHighway: 0.11
+  roadLength: 30
+  highwayThickness: 3
+  bywayThickness: 1
 --- !u!4 &1696565347
 Transform:
   m_ObjectHideFlags: 0
@@ -466,7 +478,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2139394633}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed0a4b4d012d04053bb16843d7117e3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 3dc79f2f7e6004c1c8afabdf83bcc082, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   movementSpeed: 10
