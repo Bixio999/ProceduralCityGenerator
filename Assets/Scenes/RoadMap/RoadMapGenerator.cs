@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using QuikGraph;
+// using QuikGraph;
 
 public class RoadMapGenerator : ScriptableObject
 {
@@ -35,11 +35,14 @@ public class RoadMapGenerator : ScriptableObject
         instance.highwayThickness = highwayThickness;
         instance.bywayThickness = bywayThickness;
 
+        // BidirectionalGraph<Crossroad, Road> graph = new BidirectionalGraph<Crossroad, Road>();
+
+
         instance.cityCentre = new Crossroad(cityCentre);
         instance.cityRadius = cityRadius;
 
         instance.roadList = new List<Road>();
-        instance.quadTree = new QuadTree<IQuadTreeObject>(4, new Rect(cityCentre.x - cityRadius, cityCentre.y - cityRadius, cityCentre.x + cityRadius, cityCentre.y + cityRadius));
+        instance.quadTree = new QuadTree<IQuadTreeObject>(4, new Rect(cityCentre.x - cityRadius, cityCentre.y - cityRadius, 2 * cityRadius, 2 * cityRadius));
         instance.moduleQueue = new Queue<RMModule>();
 
         return instance;
