@@ -1,14 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-// using QuikGraph;
+using QuikGraph;
+using QuikGraph.Algorithms.ConnectedComponents;
 
 public class RoadMapGenerator : ScriptableObject
 {
     private float[,] heightmap;
     private float[,] populationDensity;
     private QuadTree<IQuadTreeObject> quadTree;
-    private List<Road> roadList;
+
+    private UndirectedGraph<Crossroad, Road> graph;
+
     private Queue<RMModule> moduleQueue;
     private float waterPruningFactor;
     private int maximalAngleToFix;
@@ -19,8 +22,12 @@ public class RoadMapGenerator : ScriptableObject
     private int bywayThickness;
     private Crossroad cityCentre;
     private int cityRadius;
+    private int roadLength;
+    private float roadLengthVariability;
 
-    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness)
+    private int minLotArea;
+
+    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int minLotArea, int roadLength, float roadLengthVariability)
     {
         RoadMapGenerator instance = CreateInstance<RoadMapGenerator>();
 
@@ -34,21 +41,27 @@ public class RoadMapGenerator : ScriptableObject
         instance.probabilityToBranchHighway = probabilityToBranchHighway;
         instance.highwayThickness = highwayThickness;
         instance.bywayThickness = bywayThickness;
+        instance.roadLength = roadLength;
+        instance.roadLengthVariability = roadLengthVariability;
 
-        // BidirectionalGraph<Crossroad, Road> graph = new BidirectionalGraph<Crossroad, Road>();
+        instance.minLotArea = minLotArea;
+
+        instance.graph = new UndirectedGraph<Crossroad, Road>();
+
+        // QuikGraph.Algorithms.ConnectedComponents.StronglyConnectedComponentsAlgorithm<Crossroad, Road> scc = new QuikGraph.Algorithms.ConnectedComponents.StronglyConnectedComponentsAlgorithm<Crossroad, Road>(graph);
+        
 
 
         instance.cityCentre = new Crossroad(cityCentre);
         instance.cityRadius = cityRadius;
 
-        instance.roadList = new List<Road>();
         instance.quadTree = new QuadTree<IQuadTreeObject>(4, new Rect(cityCentre.x - cityRadius, cityCentre.y - cityRadius, 2 * cityRadius, 2 * cityRadius));
         instance.moduleQueue = new Queue<RMModule>();
 
         return instance;
     }
 
-    public Texture2D generateRoadMap(RoadMapRule rule, Vector2 initialDirection, int roadLength, int iterationLimit)
+    public void GenerateRoadMap(RoadMapRule rule, Vector2 initialDirection, int iterationLimit)
     {
         RoadModule r = new RoadModule();
         r.ruleAttr = rule;
@@ -58,20 +71,15 @@ public class RoadMapGenerator : ScriptableObject
         r.startPoint = this.cityCentre;
         
         this.quadTree.Insert(this.cityCentre);
+        this.graph.AddVertex(this.cityCentre);
 
         this.moduleQueue.Enqueue(r);
-
 
         RMModule m;
 
         int iteration;
         for (iteration = 0; this.moduleQueue.Count > 0; iteration++)
         {
-            // if (iteration == 21)
-            // {
-            //     Debug.Log("iteration limit reached");
-            // }
-
             int moduleToEvaulate = this.moduleQueue.Count;
             for(int i = 0; i < moduleToEvaulate; i++)
             {
@@ -84,44 +92,87 @@ public class RoadMapGenerator : ScriptableObject
 
             if (iterationLimit > 0 && iteration >= iterationLimit)
                 break;
-
-            // m = this.moduleQueue.Dequeue();
-            // if (m is RoadModule)
-            //     roadModuleHandler((RoadModule) m);
-            // else
-            //     branchModuleHandler((BranchModule) m);
         }
-
-        // this.quadTree.DrawDebug();
 
         Debug.LogFormat("iterations: {0}", iteration);
 
-        Texture2D texture = new Texture2D(this.heightmap.GetLength(0), this.heightmap.GetLength(1), TextureFormat.RGBA32, true);
-        FillTextureWithTransparency(texture);
-
-        foreach(Road road in this.roadList)
-            drawLine(texture, road.start.GetPosition(), road.end.GetPosition(), road.highway? Color.black : Color.grey, road.highway? this.highwayThickness : this.bywayThickness, road.highway);
-
-        // Queue<Crossroad> crossroads = new Queue<Crossroad>();
-        // crossroads.Enqueue(this.cityCentre);
-
-        // while (crossroads.Count > 0)
-        // {
-        //     Crossroad c = crossroads.Dequeue();
-        //     foreach(Road road in c.GetRoadList())
-        //     {
-        //         drawLine(texture, road.start.GetPosition(), road.end.GetPosition(), road.highway? Color.black : Color.grey, road.highway? this.highwayThickness : this.bywayThickness, road.highway);
-        //         crossroads.Enqueue(road.start == c ? road.end : road.start);
-        //         road.end.RemoveRoad(road);
-        //     }
-        // }
-        texture.Apply();
-        texture.wrapMode = TextureWrapMode.Clamp;
-        
-        return texture;
+        //this.FixRoadMapConnectivity();
     }
 
-    public Texture2D generateHighResTexture(float textureScalingFactor)
+    public void Render(GameObject highway, GameObject byway, GameObject crossroad, float scalingFactor, float roadModelsLength, float coordScaling)
+    {
+        GameObject render = new GameObject("RoadMap Render");
+
+        foreach(Road road in this.graph.Edges)
+        {
+            if (road.start.GetPosition() == road.end.GetPosition())
+                continue;
+            Vector2 v = road.start.GetPosition();
+            Vector3 start = new Vector3(v.x, 0, v.y) * coordScaling;
+            start += Terrain.activeTerrain.GetPosition();
+            start.y = Terrain.activeTerrain.SampleHeight(start);
+
+            v = road.end.GetPosition();
+            Vector3 end = new Vector3(v.x, 0, v.y) * coordScaling;
+            end += Terrain.activeTerrain.GetPosition();
+            end.y = Terrain.activeTerrain.SampleHeight(end);
+
+            Vector3 vector = (end - start);
+
+            Debug.LogFormat("length of road {0}: {1}", road, vector.magnitude);
+
+            int nSections = Mathf.RoundToInt(vector.magnitude);
+
+            GameObject model = new GameObject();
+
+            for(int i = 0; i < nSections; i++)
+            {
+                GameObject roadSection = road.highway ? GameObject.Instantiate(highway) : GameObject.Instantiate(byway);
+                float p = i * roadModelsLength + roadModelsLength;
+
+                roadSection.transform.localPosition = new Vector3(0,0,p);
+                roadSection.transform.parent = model.transform;
+            }
+            model.transform.localScale = Vector3.one * scalingFactor;
+
+            model.transform.position = start;
+
+            //Debug.LogFormat("current road: {0}", road);
+            model.transform.rotation = Quaternion.LookRotation(vector);
+
+            model.transform.parent = render.transform;
+            model.name = road.ToString();
+        }
+
+        foreach(Crossroad c in this.graph.Vertices)
+        {
+            GameObject model = GameObject.Instantiate(crossroad);
+            model.transform.localScale = Vector3.one * scalingFactor;
+
+            Vector2 v = c.GetPosition();
+            Vector3 position = new Vector3(v.x, 0, v.y) * coordScaling;
+            position += Terrain.activeTerrain.GetPosition();
+            position.y = Terrain.activeTerrain.SampleHeight(position);
+            model.transform.position = position;
+
+            model.transform.parent = render.transform;
+            model.name = c.ToString();
+        }
+        render.transform.position = Vector3.up;
+    }
+
+    public void DrawDebug(Texture2D texture)
+    {
+        FillTextureWithTransparency(texture);
+
+        foreach (Road road in this.graph.Edges)
+            drawLine(texture, road.start.GetPosition(), road.end.GetPosition(), road.highway ? Color.black : Color.grey, road.highway ? this.highwayThickness : this.bywayThickness, road.highway);
+
+        texture.Apply();
+        texture.wrapMode = TextureWrapMode.Clamp;
+    }
+
+    public Texture2D GenerateHighResTexture(float textureScalingFactor)
     {
         int width = (int) (this.heightmap.GetLength(0) * textureScalingFactor);
         int height = (int) (this.heightmap.GetLength(1) * textureScalingFactor);
@@ -133,7 +184,7 @@ public class RoadMapGenerator : ScriptableObject
 
         float scalingFactor = (float) Mathf.Max(width, height) / (cityRadius * 2);
 
-        foreach(Road road in this.roadList)
+        foreach(Road road in this.graph.Edges)
         {
             Vector2 roadStart = ((road.start.GetPosition() - this.cityCentre.GetPosition()) * scalingFactor) + origin;
             Vector2 roadEnd = ((road.end.GetPosition() - this.cityCentre.GetPosition()) * scalingFactor) + origin;
@@ -141,25 +192,6 @@ public class RoadMapGenerator : ScriptableObject
             drawLine(texture, roadStart, roadEnd, road.highway? Color.black : Color.grey, Mathf.RoundToInt((road.highway? this.highwayThickness : this.bywayThickness) * scalingFactor), road.highway);   
         }
 
-        // Queue<Crossroad> crossroads = new Queue<Crossroad>();
-        // crossroads.Enqueue(this.cityCentre);
-
-        // while(crossroads.Count > 0)
-        // {
-        //     Crossroad c = crossroads.Dequeue();
-        //     foreach(Road road in c.GetRoadList())
-        //     {
-        //         Vector2 roadStart = ((road.start.GetPosition() - this.cityCentre.GetPosition()) * scalingFactor) + origin;
-        //         Vector2 roadEnd = ((road.end.GetPosition() - this.cityCentre.GetPosition()) * scalingFactor) + origin;
-
-        //         drawLine(texture, roadStart, roadEnd, road.highway? Color.black : Color.grey, Mathf.RoundToInt((road.highway? this.highwayThickness : this.bywayThickness) * scalingFactor), road.highway);
-
-
-        //         // drawLine(texture, road.start.GetPosition(), road.end.GetPosition(), road.highway? Color.black : Color.grey, road.highway? this.highwayThickness : this.bywayThickness);
-        //         crossroads.Enqueue(road.start == c ? road.end : road.start);
-        //         // road.end.RemoveRoad(road);
-        //     }
-        // }
         texture.Apply();
         return texture; 
     }
@@ -305,7 +337,7 @@ public class RoadMapGenerator : ScriptableObject
     {
         Vector2 endingPoint = start.GetPosition() + roadAttr.direction * roadAttr.length;
 
-        if (!isPositionValid(endingPoint, roadAttr.highway))
+        if (!isPositionValid(start.GetPosition(), endingPoint, roadAttr.highway))
         {
             endingPoint = fixPosition(endingPoint, roadAttr, start.GetPosition());
             if (endingPoint.Equals(Vector2.zero))
@@ -319,34 +351,48 @@ public class RoadMapGenerator : ScriptableObject
 
         int neighborhoodRadius = Mathf.RoundToInt(roadAttr.length * this.neighborhoodFactor);
 
-        List<IQuadTreeObject> neighborhood = this.quadTree.RetrieveObjectsInArea(new Rect(endingPoint.x - neighborhoodRadius, 
-                                                     endingPoint.y - neighborhoodRadius, 
-                                                     neighborhoodRadius * 2, 
-                                                     neighborhoodRadius * 2)
+        List<IQuadTreeObject> neighborhood = this.quadTree.RetrieveObjectsInArea(new Rect(endingPoint.x - roadAttr.length, 
+                                                     endingPoint.y - roadAttr.length, 
+                                                     roadAttr.length * 2, 
+                                                     roadAttr.length * 2)
                                             );
 
 
-        Road nearestRoad = null;
+        Road nearestRoad = null, intersectedRoad = null;
+        Vector2 nearestIntersection = Vector2.zero;
         Crossroad nearestCrossRoad = null;
 
-        float distanceToNearestRoad = 0, distanceToNearestCrossRoad = 0;
+        float distanceToNearestRoad = 0, distanceToNearestCrossRoad = 0, distanceToNearestIntersection = 0;
+        Vector2 intersection, linesIntersection;
 
         if (neighborhood != null)
         {
             foreach(IQuadTreeObject item in neighborhood)
             {
-                if (item == start)
+                if (item == start || item.GetPosition() == endingPoint)
                     continue;
 
                 float distanceToItem = Vector2.Distance(endingPoint, item.GetPosition());
-                if (distanceToItem > neighborhoodRadius)
+                if (distanceToItem > neighborhoodRadius && item is Crossroad)
                     continue;
 
-                if (item is Road)
+                if (item is Road road)
                 {
-                    if (nearestRoad == null || distanceToItem < distanceToNearestRoad)
+                    
+                    if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, road.start.GetPosition(), road.end.GetPosition(), out intersection, out linesIntersection)
+                        && (!(intersection == start.GetPosition()) && !(intersection == endingPoint)))
                     {
-                        nearestRoad = (Road) item;
+                        float distance = Vector2.Distance(intersection, start.GetPosition());
+                        if ((nearestIntersection == Vector2.zero) || distance < distanceToNearestIntersection)
+                        {
+                            distanceToNearestIntersection = distance;
+                            nearestIntersection = intersection;
+                            intersectedRoad = road;
+                        }
+                    }    
+                    else if (distanceToItem <= neighborhoodRadius && (nearestRoad == null || distanceToItem < distanceToNearestRoad))
+                    {
+                        nearestRoad = road;
                         distanceToNearestRoad = distanceToItem;
                     }
                 }
@@ -363,17 +409,31 @@ public class RoadMapGenerator : ScriptableObject
 
         bool merged = false;
 
-        if (nearestRoad == null && nearestCrossRoad == null)
+        intersection = Vector2.zero;
+        linesIntersection = Vector2.zero;
+
+        if (nearestIntersection != Vector2.zero)
+        {
+            end = new Crossroad(nearestIntersection);
+            intersectRoads(end, intersectedRoad);
+            merged = true;
+        }
+        else if (nearestRoad == null && nearestCrossRoad == null)
             end = new Crossroad(endingPoint);
         else if (nearestCrossRoad == null)
         {
-            Vector2 intersection, linesIntersection;
+            
             if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out intersection, out linesIntersection))
             {
-                end = new Crossroad(intersection);
-                merged = true;
+                if (intersection != start.GetPosition() && intersection != endingPoint)
+                {
+                    end = new Crossroad(intersection);
+                    merged = true;
+                }
+                else
+                    end = new Crossroad(endingPoint);
             }
-            else if (!linesIntersection.Equals(Vector2.zero))
+            else if (linesIntersection != Vector2.zero)
             {
                 end = new Crossroad(linesIntersection);
                 merged = true;
@@ -382,7 +442,7 @@ public class RoadMapGenerator : ScriptableObject
                 end = new Crossroad(endingPoint);
 
             if (merged)
-                intersectRoads(start, end, nearestRoad);
+                intersectRoads(end, nearestRoad);
         }
         else if (nearestRoad == null)
         {
@@ -402,13 +462,17 @@ public class RoadMapGenerator : ScriptableObject
         }
         else if (Vector2.Distance(endingPoint, nearestRoad.GetPosition()) < Vector2.Distance(endingPoint, nearestCrossRoad.GetPosition()))
         {
-            Vector2 intersection, linesIntersection;
             if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out intersection, out linesIntersection))
             {
-                end = new Crossroad(intersection);
-                merged = true;
+                if (intersection != start.GetPosition() && intersection != endingPoint)
+                {
+                    end = new Crossroad(intersection);
+                    merged = true;
+                }
+                else
+                    end = new Crossroad(endingPoint);
             }
-            else if (!linesIntersection.Equals(Vector2.zero))
+            else if (linesIntersection != Vector2.zero)
             {
                 end = new Crossroad(linesIntersection);
                 merged = true;
@@ -417,7 +481,7 @@ public class RoadMapGenerator : ScriptableObject
                 end = new Crossroad(endingPoint);
 
             if (merged)
-                intersectRoads(start, end, nearestRoad);
+                intersectRoads(end, nearestRoad);
         }
         else
         {
@@ -429,17 +493,23 @@ public class RoadMapGenerator : ScriptableObject
         start.AddRoad(r);
         end.AddRoad(r);
 
-        this.roadList.Add(r);
-
+        if (!this.graph.ContainsVertex(end))
+            this.graph.AddVertex(end);
+        this.graph.AddEdge(r);
+   
         this.quadTree.Insert(end);
         this.quadTree.Insert(r);
+
+
+        if (end.GetPosition() == start.GetPosition())
+            Debug.Log("end uguale a start");
 
         // Debug.LogFormat("Road {0} - {1}", start.GetPosition(), end.GetPosition());
 
         return merged ? QueryStates.MERGED : QueryStates.SUCCEED;
     }
 
-    private void intersectRoads(Crossroad start, Crossroad intersection, Road r)
+    private void intersectRoads(Crossroad intersection, Road r)
     {            
         Road newSection1 = new Road(r.start, intersection, r.highway);
         Road newSection2 = new Road(intersection, r.end, r.highway);
@@ -449,19 +519,37 @@ public class RoadMapGenerator : ScriptableObject
 
         r.start.AddRoad(newSection1);
         r.end.AddRoad(newSection2);
+
+        intersection.AddRoad(newSection1);
+        intersection.AddRoad(newSection2);
+
+        this.graph.RemoveEdge(r);
+        this.graph.AddVertex(intersection);
+        this.graph.AddEdge(newSection1);
+        this.graph.AddEdge(newSection2);
     }
     
 
-    private bool isPositionValid(Vector2 position, bool highway)
+    private bool isPositionValid(Vector2 start, Vector2 end, bool highway)
     {
-        if (position.x < 0 || position.x >= this.heightmap.GetLength(0))
+        if (end.x < 0 || end.x >= this.heightmap.GetLength(0))
             return false;
-        if (position.y < 0 || position.y >= this.heightmap.GetLength(1))
+        if (end.y < 0 || end.y >= this.heightmap.GetLength(1))
             return false;
-        if (this.heightmap[Mathf.RoundToInt(position.y), Mathf.RoundToInt(position.x)] == 0)
+        if (this.heightmap[Mathf.RoundToInt(end.y), Mathf.RoundToInt(end.x)] == 0)
             return false;
-        if (this.populationDensity[Mathf.RoundToInt(position.y), Mathf.RoundToInt(position.x)] <= (highway? 0.1f : 0.01f))
+        if (this.populationDensity[Mathf.RoundToInt(end.y), Mathf.RoundToInt(end.x)] <= (highway? 0.1f : 0.01f))
             return false;
+        if (start == end)
+            return false;
+
+        Vector2 dir = (end - start).normalized;
+        for (int i = 0; i < Mathf.RoundToInt(Vector2.Distance(start, end)); i++)
+        {
+            Vector2 t = start + i * dir;
+            if (this.heightmap[Mathf.RoundToInt(t.y), Mathf.RoundToInt(t.x)] == 0)
+                return false;
+        }
         return true;
     }
 
@@ -472,7 +560,7 @@ public class RoadMapGenerator : ScriptableObject
         for (; tempLength > pruningLimit; tempLength--)
         {
             end = start + roadAttr.direction * tempLength;
-            if (isPositionValid(end, roadAttr.highway))
+            if (isPositionValid(start, end, roadAttr.highway))
             {
                 roadAttr.length = tempLength;
                 return end;
@@ -494,7 +582,7 @@ public class RoadMapGenerator : ScriptableObject
             direction = new Vector2(t.x, t.z);
             end = start + direction * tempLength;
 
-            if (isPositionValid(end, roadAttr.highway))
+            if (isPositionValid(start, end, roadAttr.highway))
             {
                 roadAttr.direction = direction;
                 roadAttr.length = tempLength;
@@ -504,4 +592,67 @@ public class RoadMapGenerator : ScriptableObject
         return Vector2.zero;
     }
 
+    public void DrawConnectivity(Texture2D texture)
+    {
+        FillTextureWithTransparency(texture);
+
+        StronglyConnectedComponentsAlgorithm<Crossroad, Road> algorithm = new(this.graph.ToBidirectionalGraph());
+        algorithm.Compute();
+
+        foreach(BidirectionalGraph<Crossroad, Road> g in algorithm.Graphs)
+        {
+            Color c = Random.ColorHSV();
+            foreach(Road r in g.Edges)
+                drawLine(texture, r.start.GetPosition(), r.end.GetPosition(), c, r.highway ? this.highwayThickness : this.bywayThickness, false);
+        }
+        texture.Apply();
+        texture.wrapMode = TextureWrapMode.Clamp;
+    }
+
+    private void FixRoadMapConnectivity()
+    {
+        StronglyConnectedComponentsAlgorithm<Crossroad, Road> algorithm;
+
+        bool completed = false;
+
+        while(!completed)
+        {
+            algorithm = new(this.graph.ToBidirectionalGraph());
+            algorithm.Compute();
+            Debug.LogFormat("strongly connected components: {0}", algorithm.ComponentCount);
+
+            foreach (BidirectionalGraph<Crossroad, Road> component in algorithm.Graphs)
+            {
+                float area = 0;
+                Queue<Crossroad> triangle = new Queue<Crossroad>(3);
+                foreach (Crossroad v in component.Vertices)
+                {
+                    if (triangle.Count < 3)
+                        triangle.Enqueue(v);
+                    else
+                    {
+                        Crossroad[] t = triangle.ToArray();
+
+                        Vector2 a = t[0].GetPosition() - t[1].GetPosition();
+                        Vector2 b = t[0].GetPosition() - t[2].GetPosition();
+
+                        float alpha = Vector2.Angle(a, b);
+
+                        area += a.magnitude * b.magnitude * Mathf.Sin(alpha) * 0.5f;
+
+                        triangle.Dequeue();
+                    }
+                }
+
+                if (area < this.minLotArea)
+                {
+                    // MERGE GRAPH
+                    continue;
+                }
+            }
+            completed = true;
+        }
+
+        
+    }
 }

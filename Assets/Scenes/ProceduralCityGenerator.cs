@@ -49,8 +49,15 @@ public class ProceduralCityGenerator : MonoBehaviour
     public int defaultDelay;
     [Range(0,1)]    public float probabilityToBranchHighway;
     public int roadLength;
+    [Range(0, 1)] public float roadLengthVariability;
     public int highwayThickness;
     public int bywayThickness;
+    public int minLotArea;
+    public GameObject highway;
+    public GameObject byway;
+    public GameObject crossroad;
+    public float modelsScalingFactor = .2f;
+    public float modelsLength = 5;
 
 
     public enum RoadMapRules
@@ -83,7 +90,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         td.SetHeights(0,0, map);
 
-        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness);
+        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, minLotArea, roadLength, roadLengthVariability);
      
         RoadMapRule r;
         r = new BasicRule();
@@ -103,9 +110,19 @@ public class ProceduralCityGenerator : MonoBehaviour
         //         r = new BasicRule();
         //         break;
         // }
-        
-        Texture2D roadMap = roadMapGenerator.generateRoadMap(r, Random.insideUnitCircle, roadLength, iterationLimit);
-        UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
+
+        roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle, iterationLimit);
+
+        //Texture2D roadMap = td.terrainLayers[3].diffuseTexture;
+
+        Texture2D roadMap = new Texture2D(td.alphamapResolution, td.alphamapResolution, TextureFormat.RGBA32, true);
+
+        roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
+        //roadMapGenerator.DrawConnectivity(roadMap);
+        roadMapGenerator.DrawDebug(roadMap);
+            
+        //if (!File.Exists("Assets/Resources/RoadMapTexture.asset"))
+            UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
 
         td.terrainLayers[3].diffuseTexture = roadMap;
 
@@ -127,9 +144,9 @@ public class ProceduralCityGenerator : MonoBehaviour
                 {
                     alphaMap[i,j,1] = 1;
                 }
-                else if (!roadMap.GetPixel(scaled_j, scaled_i).Equals(Color.clear))
+                else if (!roadMap.GetPixel(j, i).Equals(Color.clear))
                 {
-                    alphaMap[i,j,3] = 1;
+                    alphaMap[i, j, 3] = 1;
                     // Debug.LogFormat("drawing street at i = {0}, j = {1}", scaled_i, scaled_j);
                 }
                 else if (populationMap[scaled_i, scaled_j] > 0)
@@ -159,7 +176,7 @@ public class ProceduralCityGenerator : MonoBehaviour
             SaveImages.SaveTextureAsPNG(roadMap, "RoadMap_" + RandomSeed);
 
         if (saveHDRoads)
-            SaveImages.SaveTextureAsPNG(roadMapGenerator.generateHighResTexture(2f), "RoadMapHD_" + RandomSeed);
+            SaveImages.SaveTextureAsPNG(roadMapGenerator.GenerateHighResTexture(2f), "RoadMapHD_" + RandomSeed);
 
         if (instantQuit)
             UnityEditor.EditorApplication.isPlaying = false;

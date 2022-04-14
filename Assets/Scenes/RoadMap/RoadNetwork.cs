@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using QuikGraph;
 
 public class Crossroad : IQuadTreeObject{
     List<Road> roadList;
@@ -37,11 +38,23 @@ public class Crossroad : IQuadTreeObject{
     }
 }
 
-public class Road : IQuadTreeObject {
+public class Road : IQuadTreeObject, IEdge<Crossroad> {
     public Crossroad start;
     public Crossroad end;
     public bool highway;
     Vector2 position;
+
+    public Crossroad Source {
+        get {
+            return start;
+        }
+    }
+
+    public Crossroad Target {
+        get {
+            return end;
+        }
+    }
 
     public Vector2 GetPosition()
     {

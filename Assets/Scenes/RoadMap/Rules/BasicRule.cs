@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class BasicRule : RoadMapRule
 {
-    private int scanRays = 5;
+    private int scanRays = 5; // 5
     [SerializeField]
-    private int scanRadius = 20;
+    private int scanRadius = 20; // 20
     [SerializeField]
 
     private Vector2 scanForMaxPopulationDensity(Vector2 direction, Vector2 position, int length, in float[,] populationDensity)
