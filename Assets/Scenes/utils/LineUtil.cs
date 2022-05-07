@@ -44,37 +44,37 @@ public static class LineUtil {
 
         if (Approximately(cross_rs, 0f)) {
             // Parallel lines
-            if (Approximately(CrossProduct2D(qminusp, r), 0f)) {
-                // Co-linear lines, could overlap
-                float rdotr = Vector2.Dot(r, r);
-                float sdotr = Vector2.Dot(s, r);
-                // this means lines are co-linear
-                // they may or may not be overlapping
-                float t0 = Vector2.Dot(qminusp, r / rdotr);
-                float t1 = t0 + sdotr / rdotr;
-                if (sdotr < 0) {
-                    // lines were facing in different directions so t1 > t0, swap to simplify check
-                    Swap(ref t0, ref t1);
-                }
+            //if (Approximately(CrossProduct2D(qminusp, r), 0f)) {
+            //    // Co-linear lines, could overlap
+            //    float rdotr = Vector2.Dot(r, r);
+            //    float sdotr = Vector2.Dot(s, r);
+            //    // this means lines are co-linear
+            //    // they may or may not be overlapping
+            //    float t0 = Vector2.Dot(qminusp, r / rdotr);
+            //    float t1 = t0 + sdotr / rdotr;
+            //    if (sdotr < 0) {
+            //        // lines were facing in different directions so t1 > t0, swap to simplify check
+            //        Swap(ref t0, ref t1);
+            //    }
 
-                if (t0 <= 1 && t1 >= 0) {
-                    // Nice half-way point intersection
-                    float t = Mathf.Lerp(Mathf.Max(0, t0), Mathf.Min(1, t1), 0.5f);
-                    intersection = p + t * r;
-                    linesIntersection = intersection;
-                    return true;
-                } else {
-                    // Co-linear but disjoint
-                    intersection = Vector2.zero;
-                    linesIntersection = Vector2.zero;
-                    return false;
-                }
-            } else {
+            //    if (t0 <= 1 && t1 >= 0) {
+            //        // Nice half-way point intersection
+            //        float t = Mathf.Lerp(Mathf.Max(0, t0), Mathf.Min(1, t1), 0.5f);
+            //        intersection = p + t * r;
+            //        linesIntersection = intersection;
+            //        return true;
+            //    } else {
+            //        // Co-linear but disjoint
+            //        intersection = Vector2.zero;
+            //        linesIntersection = Vector2.zero;
+            //        return false;
+            //    }
+            //} else {
                 // Just parallel in different places, cannot intersect
                 intersection = Vector2.zero;
                 linesIntersection = Vector2.zero;
                 return false;
-            }
+            //}
         } else {
             // Not parallel, calculate t and u
             float t = CrossProduct2D(qminusp, s) / cross_rs;

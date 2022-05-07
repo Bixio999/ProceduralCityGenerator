@@ -119,7 +119,7 @@ public class RoadMapGenerator : ScriptableObject
 
             Vector3 vector = (end - start);
 
-            Debug.LogFormat("length of road {0}: {1}", road, vector.magnitude);
+            //Debug.LogFormat("length of road {0}: {1}", road, vector.magnitude);
 
             int nSections = Mathf.RoundToInt(vector.magnitude);
 
@@ -130,7 +130,8 @@ public class RoadMapGenerator : ScriptableObject
                 GameObject roadSection = road.highway ? GameObject.Instantiate(highway) : GameObject.Instantiate(byway);
                 float p = i * roadModelsLength + roadModelsLength;
 
-                roadSection.transform.localPosition = new Vector3(0,0,p);
+                //roadSection.transform.localPosition = new Vector3(roadModelsLength / 2, 0, p);
+                roadSection.transform.localPosition = new Vector3(0, 0, p);
                 roadSection.transform.parent = model.transform;
             }
             model.transform.localScale = Vector3.one * scalingFactor;
@@ -140,6 +141,8 @@ public class RoadMapGenerator : ScriptableObject
             //Debug.LogFormat("current road: {0}", road);
             model.transform.rotation = Quaternion.LookRotation(vector);
 
+            model.transform.position += model.transform.rotation * (Vector3.right * roadModelsLength * scalingFactor * (road.highway ? 2 : 1));
+
             model.transform.parent = render.transform;
             model.name = road.ToString();
         }
@@ -147,10 +150,10 @@ public class RoadMapGenerator : ScriptableObject
         foreach(Crossroad c in this.graph.Vertices)
         {
             GameObject model = GameObject.Instantiate(crossroad);
-            model.transform.localScale = Vector3.one * scalingFactor;
+            model.transform.localScale = model.transform.localScale * scalingFactor;
 
             Vector2 v = c.GetPosition();
-            Vector3 position = new Vector3(v.x, 0, v.y) * coordScaling;
+            Vector3 position = (new Vector3(v.x, 0, v.y) /*+ Vector3.right * roadModelsLength / 2 * scalingFactor */) * coordScaling;
             position += Terrain.activeTerrain.GetPosition();
             position.y = Terrain.activeTerrain.SampleHeight(position);
             model.transform.position = position;
@@ -369,7 +372,8 @@ public class RoadMapGenerator : ScriptableObject
         {
             foreach(IQuadTreeObject item in neighborhood)
             {
-                if (item == start || item.GetPosition() == endingPoint)
+                // IF ITEM IS THE START CROSSROAD
+                if (item == start) //|| item.GetPosition() == endingPoint)
                     continue;
 
                 float distanceToItem = Vector2.Distance(endingPoint, item.GetPosition());
@@ -378,18 +382,31 @@ public class RoadMapGenerator : ScriptableObject
 
                 if (item is Road road)
                 {
-                    
+                    if (start.GetPosition() == road.start.GetPosition() || start.GetPosition() == road.end.GetPosition())
+                    {
+                        Vector2 v1 = (endingPoint - start.GetPosition()).normalized;
+                        Vector2 v2 = (road.end.GetPosition() - road.start.GetPosition()).normalized;
+
+                        if (Mathf.Abs(Vector2.Dot(v1, v2)) == 1)
+                        {
+                            end = null;
+                            return QueryStates.FAILED;
+                        }
+                    }
+
+                    // IF THE ROAD INTERSECTS ANOTHER ONE, FIND THE NEAREST FROM START POINT
                     if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, road.start.GetPosition(), road.end.GetPosition(), out intersection, out linesIntersection)
-                        && (!(intersection == start.GetPosition()) && !(intersection == endingPoint)))
+                        && !(intersection == start.GetPosition()) && intersection != endingPoint)
                     {
                         float distance = Vector2.Distance(intersection, start.GetPosition());
-                        if ((nearestIntersection == Vector2.zero) || distance < distanceToNearestIntersection)
+                        if (nearestIntersection == Vector2.zero || distance < distanceToNearestIntersection)
                         {
                             distanceToNearestIntersection = distance;
                             nearestIntersection = intersection;
                             intersectedRoad = road;
                         }
-                    }    
+                    }
+                    // IF THEY DO NOT INTERSECT, CHECK IF IS THE NEAREST ROAD
                     else if (distanceToItem <= neighborhoodRadius && (nearestRoad == null || distanceToItem < distanceToNearestRoad))
                     {
                         nearestRoad = road;
@@ -398,6 +415,7 @@ public class RoadMapGenerator : ScriptableObject
                 }
                 else
                 {
+                    // CHECK IF IT IS THE NEAREST CROSSROAD
                     if (nearestCrossRoad == null || distanceToItem < distanceToNearestCrossRoad)
                     {
                         nearestCrossRoad = (Crossroad) item;
@@ -409,84 +427,88 @@ public class RoadMapGenerator : ScriptableObject
 
         bool merged = false;
 
-        intersection = Vector2.zero;
-        linesIntersection = Vector2.zero;
-
+        // CHECK IF A ROAD INTERSECTION WAS FOUND, AND APPLY THE INTERSECTION
         if (nearestIntersection != Vector2.zero)
         {
             end = new Crossroad(nearestIntersection);
-            intersectRoads(end, intersectedRoad);
+            if (!intersectRoads(end, intersectedRoad, neighborhoodRadius / 2f))
+                return QueryStates.FAILED;
             merged = true;
         }
+        // CHECK IF THERE WERE NO NEAREST ROAD AND CROSSROAD. JUST CONFIRM THE ENDING POINT
         else if (nearestRoad == null && nearestCrossRoad == null)
             end = new Crossroad(endingPoint);
+
+        // ONLY A NEAREST ROAD WAS FOUND
         else if (nearestCrossRoad == null)
         {
-            
-            if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out intersection, out linesIntersection))
-            {
-                if (intersection != start.GetPosition() && intersection != endingPoint)
-                {
-                    end = new Crossroad(intersection);
-                    merged = true;
-                }
-                else
-                    end = new Crossroad(endingPoint);
-            }
-            else if (linesIntersection != Vector2.zero)
+            // CHECK IF THE ROADS LINES INTERSECT, AND EVENTUALLY IF THE INTERSECTION IS IN THE NEIGHBORHOOD
+            if (!LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out intersection, out linesIntersection)
+                && !linesIntersection.Equals(Vector2.zero)
+                && Vector2.Distance(linesIntersection, endingPoint) <= neighborhoodRadius)
             {
                 end = new Crossroad(linesIntersection);
                 merged = true;
+                if (!intersectRoads(end, nearestRoad, neighborhoodRadius / 2f))
+                    return QueryStates.FAILED;
             }
             else
                 end = new Crossroad(endingPoint);
-
-            if (merged)
-                intersectRoads(end, nearestRoad);
         }
+
+        // ONLY A NEAREST CROSSROAD WAS FOUND
         else if (nearestRoad == null)
         {
             end = nearestCrossRoad;
             merged = true;
-            foreach(Road road in nearestCrossRoad.GetRoadList())
+
+            // CHECK IF AN EXISTING ROAD TO THIS CROSSROAD ALREADY CONNECTS TO THE START CROSSROAD
+            foreach (Road road in nearestCrossRoad.GetRoadList())
             {
-                if (road.start == start && distanceToNearestCrossRoad == 0)
-                    return QueryStates.FAILED;
                 if (road.start == start || road.end == start)
                 {
+                    if (LineUtil.Approximately(distanceToNearestCrossRoad, 0, .1f))
+                        return QueryStates.FAILED;
+
                     end = new Crossroad(endingPoint);
                     merged = false;
                     break;
                 }
             }
         }
-        else if (Vector2.Distance(endingPoint, nearestRoad.GetPosition()) < Vector2.Distance(endingPoint, nearestCrossRoad.GetPosition()))
-        {
-            if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out intersection, out linesIntersection))
-            {
-                if (intersection != start.GetPosition() && intersection != endingPoint)
-                {
-                    end = new Crossroad(intersection);
-                    merged = true;
-                }
-                else
-                    end = new Crossroad(endingPoint);
-            }
-            else if (linesIntersection != Vector2.zero)
-            {
-                end = new Crossroad(linesIntersection);
-                merged = true;
-            }
-            else
-                end = new Crossroad(endingPoint);
 
-            if (merged)
-                intersectRoads(end, nearestRoad);
-        }
+        // BOTH NEAREST CROSSROAD AND ROAD WERE FOUND
         else
         {
-            end = nearestCrossRoad;
             merged = true;
+
+            LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, nearestRoad.start.GetPosition(), nearestRoad.end.GetPosition(), out _, out linesIntersection);
+
+            // CHECK IF THE ROADS LINES INTERSECTION IS NEARER THAN THE CROSSROAD
+            if (!linesIntersection.Equals(Vector2.zero)
+                && (linesIntersection != start.GetPosition() && linesIntersection != endingPoint)
+                && distanceToNearestRoad < distanceToNearestCrossRoad)
+            {
+                end = new Crossroad(linesIntersection);
+                if (!intersectRoads(end, nearestRoad, neighborhoodRadius / 2f))
+                    return QueryStates.FAILED;
+            }
+            else
+            {
+                end = nearestCrossRoad;
+                foreach (Road road in nearestCrossRoad.GetRoadList())
+                {
+                    if (road.start == start || road.end == start)
+                    {
+                        //if (distanceToNearestCrossRoad <= 0)
+                        return QueryStates.FAILED; 
+
+                        //end = new Crossroad(endingPoint);
+                        //merged = false;
+                        //break;
+                    }
+                }
+            }
         }
 
         Road r = new Road(start, end, roadAttr.highway);
@@ -494,12 +516,13 @@ public class RoadMapGenerator : ScriptableObject
         end.AddRoad(r);
 
         if (!this.graph.ContainsVertex(end))
+        {
+            this.quadTree.Insert(end);
             this.graph.AddVertex(end);
+        }
         this.graph.AddEdge(r);
    
-        this.quadTree.Insert(end);
         this.quadTree.Insert(r);
-
 
         if (end.GetPosition() == start.GetPosition())
             Debug.Log("end uguale a start");
@@ -509,10 +532,18 @@ public class RoadMapGenerator : ScriptableObject
         return merged ? QueryStates.MERGED : QueryStates.SUCCEED;
     }
 
-    private void intersectRoads(Crossroad intersection, Road r)
-    {            
+    private bool intersectRoads(Crossroad intersection, Road r, float minimumLength)
+    {
+        if (intersection.GetPosition() == r.start.GetPosition() ||
+            intersection.GetPosition() == r.end.GetPosition())
+            return false;
+
         Road newSection1 = new Road(r.start, intersection, r.highway);
         Road newSection2 = new Road(intersection, r.end, r.highway);
+
+        if ((newSection1.start.GetPosition() - newSection1.end.GetPosition()).magnitude <= minimumLength ||
+            (newSection2.start.GetPosition() - newSection2.end.GetPosition()).magnitude <= minimumLength)
+            return false;
 
         r.start.RemoveRoad(r);
         r.end.RemoveRoad(r);
@@ -527,6 +558,7 @@ public class RoadMapGenerator : ScriptableObject
         this.graph.AddVertex(intersection);
         this.graph.AddEdge(newSection1);
         this.graph.AddEdge(newSection2);
+        return true;
     }
     
 
@@ -568,15 +600,15 @@ public class RoadMapGenerator : ScriptableObject
         }
 
         // angle must be within range (1,90)
-        int angle;
+        int angle = 1;
         Vector2 direction;
         Vector3 t;
         for (int i = 1; i <= this.maximalAngleToFix * 2; i++)
         {
             if ((i % 2) == 0)
                 angle = 1 - i;
-            else
-                angle = i;
+            else if (i > 1)
+                angle = i - 1;
             
             t = Quaternion.AngleAxis(angle, Vector2.up) * new Vector3(roadAttr.direction.x, 0, roadAttr.direction.y);
             direction = new Vector2(t.x, t.z);

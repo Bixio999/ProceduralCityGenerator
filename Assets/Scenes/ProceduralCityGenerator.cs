@@ -115,7 +115,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         //Texture2D roadMap = td.terrainLayers[3].diffuseTexture;
 
-        Texture2D roadMap = new Texture2D(td.alphamapResolution, td.alphamapResolution, TextureFormat.RGBA32, true);
+        Texture2D roadMap = new Texture2D(x, y, TextureFormat.RGBA32, true);
 
         roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
         //roadMapGenerator.DrawConnectivity(roadMap);
@@ -144,7 +144,7 @@ public class ProceduralCityGenerator : MonoBehaviour
                 {
                     alphaMap[i,j,1] = 1;
                 }
-                else if (!roadMap.GetPixel(j, i).Equals(Color.clear))
+                else if (!roadMap.GetPixel(scaled_j, scaled_i).Equals(Color.clear))
                 {
                     alphaMap[i, j, 3] = 1;
                     // Debug.LogFormat("drawing street at i = {0}, j = {1}", scaled_i, scaled_j);
