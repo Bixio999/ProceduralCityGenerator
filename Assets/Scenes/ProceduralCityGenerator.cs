@@ -167,7 +167,11 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         td.SetAlphamaps(0,0,alphaMap);
 
-        spawnPlayer(map, x, y);
+        Vector3 v = new Vector3(cityCentre.x, 0, cityCentre.y) + Terrain.activeTerrain.GetPosition();
+        v *= td.size.x / x;
+        v.y = Terrain.activeTerrain.SampleHeight(v) + 1;
+        player.transform.position = v;
+        //spawnPlayer(map, x, y);
 
         if (savePopulationDensity)
             SaveImages.SaveMatrixAsPNG(populationMap, RandomSeed);

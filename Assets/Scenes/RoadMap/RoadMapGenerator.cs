@@ -119,29 +119,60 @@ public class RoadMapGenerator : ScriptableObject
 
             Vector3 vector = (end - start);
 
+            //Quaternion rotation = Quaternion.LookRotation(new Vector3(vector.x, 0, vector.z));
+            Quaternion rotation = Quaternion.LookRotation(vector);
+
             //Debug.LogFormat("length of road {0}: {1}", road, vector.magnitude);
 
             int nSections = Mathf.RoundToInt(vector.magnitude);
+            //int nInterpolation = Mathf.CeilToInt((float) nSections / terrainInterpolationAccuracy);
 
             GameObject model = new GameObject();
 
-            for(int i = 0; i < nSections; i++)
+            Vector3 prev = Vector3.zero;
+            for(int i = 1; i < nSections; i++)
             {
                 GameObject roadSection = road.highway ? GameObject.Instantiate(highway) : GameObject.Instantiate(byway);
-                float p = i * roadModelsLength + roadModelsLength;
+                //Debug.Log(roadSection.transform.localPosition);
+                
+                Vector3 t = vector.normalized * i + start;
+                t.y = Terrain.activeTerrain.SampleHeight(t);
+                //t -= start;
 
-                //roadSection.transform.localPosition = new Vector3(roadModelsLength / 2, 0, p);
-                roadSection.transform.localPosition = new Vector3(0, 0, p);
+                Vector3 dir = ((t - start) / scalingFactor - prev).normalized;
+                Vector3 curr = prev + dir * roadModelsLength;
+
+                Quaternion roadDir = Quaternion.LookRotation(dir);
+
+                //t += roadDir * (Vector3.forward * (roadModelsLength / 2));
+
+                Vector3 left = t + roadDir * Vector3.left;
+                left.y = Terrain.activeTerrain.SampleHeight(left);
+
+                Vector3 right = t + roadDir * Vector3.right;
+                right.y = Terrain.activeTerrain.SampleHeight(right);
+
+                //Debug.DrawRay(left, right - left, Color.red, Mathf.Infinity);
+                //Debug.DrawRay(t, roadDir * Vector3.right, Color.blue, Mathf.Infinity);
+                //Debug.DrawRay(t, roadDir * Vector3.forward * 0.5f, Color.green, Mathf.Infinity);
+
+                float angle = Vector3.SignedAngle(right - left, roadDir * Vector3.right, roadDir * Vector3.forward);
+                Quaternion zRotation = Quaternion.AngleAxis(-angle, Vector3.forward);
+
+                roadSection.transform.localPosition = curr;
+                roadSection.transform.localRotation = roadDir * zRotation;
                 roadSection.transform.parent = model.transform;
+
+                prev = curr;
             }
             model.transform.localScale = Vector3.one * scalingFactor;
 
             model.transform.position = start;
 
             //Debug.LogFormat("current road: {0}", road);
-            model.transform.rotation = Quaternion.LookRotation(vector);
+            //model.transform.rotation = rotation;
 
-            model.transform.position += model.transform.rotation * (Vector3.right * roadModelsLength * scalingFactor * (road.highway ? 2 : 1));
+            model.transform.position += Quaternion.LookRotation(vector) * (Vector3.right * roadModelsLength * scalingFactor * (road.highway ? 1.25f : 1));
 
             model.transform.parent = render.transform;
             model.name = road.ToString();
@@ -153,7 +184,7 @@ public class RoadMapGenerator : ScriptableObject
             model.transform.localScale = model.transform.localScale * scalingFactor;
 
             Vector2 v = c.GetPosition();
-            Vector3 position = (new Vector3(v.x, 0, v.y) /*+ Vector3.right * roadModelsLength / 2 * scalingFactor */) * coordScaling;
+            Vector3 position = new Vector3(v.x, 0, v.y) * coordScaling;
             position += Terrain.activeTerrain.GetPosition();
             position.y = Terrain.activeTerrain.SampleHeight(position);
             model.transform.position = position;
