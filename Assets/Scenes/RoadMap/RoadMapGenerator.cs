@@ -189,10 +189,27 @@ public class RoadMapGenerator : ScriptableObject
             position.y = Terrain.activeTerrain.SampleHeight(position);
             model.transform.position = position;
 
+            Vector3 p1 = position + model.transform.forward;
+            p1.y = Terrain.activeTerrain.SampleHeight(p1);
+            Vector3 p2 = position + model.transform.right - model.transform.forward;
+            p2.y = Terrain.activeTerrain.SampleHeight(p2);
+            Vector3 p3 = position - model.transform.right - model.transform.forward;
+            p3.y = Terrain.activeTerrain.SampleHeight(p3);
+
+            Vector3 v1 = p2 - p1;
+            Vector3 v2 = p3 - p1;
+            Vector3 v3 = Vector3.Cross(v1, v2);
+
+            model.transform.up = v3.normalized;
+
+            //Debug.DrawRay(p1, v1, Color.red, Mathf.Infinity);
+            //Debug.DrawRay(p1, v2, Color.blue, Mathf.Infinity);
+            //Debug.DrawRay(p1, v3, Color.green, Mathf.Infinity);
+
             model.transform.parent = render.transform;
             model.name = c.ToString();
         }
-        render.transform.position = Vector3.up;
+        render.transform.position = Vector3.up * .65f;
     }
 
     public void DrawDebug(Texture2D texture)
