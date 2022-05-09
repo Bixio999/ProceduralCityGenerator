@@ -96,6 +96,8 @@ public class RoadMapGenerator : ScriptableObject
 
         Debug.LogFormat("iterations: {0}", iteration);
 
+        //this.quadTree.DrawDebug();
+
         //this.FixRoadMapConnectivity();
     }
 
@@ -430,17 +432,32 @@ public class RoadMapGenerator : ScriptableObject
 
                 if (item is Road road)
                 {
-                    if (start.GetPosition() == road.start.GetPosition() || start.GetPosition() == road.end.GetPosition())
-                    {
-                        Vector2 v1 = (endingPoint - start.GetPosition()).normalized;
-                        Vector2 v2 = (road.end.GetPosition() - road.start.GetPosition()).normalized;
+                    //if (start.GetPosition() == new Vector2(475.32f, 693.23f))
+                    //    Debug.Log("ciao2");
 
-                        if (Mathf.Abs(Vector2.Dot(v1, v2)) == 1)
-                        {
-                            end = null;
-                            return QueryStates.FAILED;
-                        }
-                    }
+
+                    //Vector2 v1 = (endingPoint - start.GetPosition()).normalized;
+                    //Vector2 v2 = (road.end.GetPosition() - road.start.GetPosition()).normalized;
+
+                    //float dot = Vector2.Dot(v1, v2);
+
+                    //if ((start.GetPosition() == road.start.GetPosition() && LineUtil.Approximately(dot, 1)) ||
+                    //    (start.GetPosition() == road.end.GetPosition() && LineUtil.Approximately(dot, -1)))
+                    //{
+                    //    end = null;
+                    //    return QueryStates.FAILED;
+                    //}
+
+                    //if ((endingPoint == road.start.GetPosition() && LineUtil.Approximately(dot, -1)) ||
+                    //    (endingPoint == road.end.GetPosition() && LineUtil.Approximately(dot, 1)))
+                    //{
+                    //    end = null;
+                    //    return QueryStates.FAILED;
+                    //}
+
+
+
+             
 
                     // IF THE ROAD INTERSECTS ANOTHER ONE, FIND THE NEAREST FROM START POINT
                     if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, road.start.GetPosition(), road.end.GetPosition(), out intersection, out linesIntersection)
@@ -510,18 +527,11 @@ public class RoadMapGenerator : ScriptableObject
             end = nearestCrossRoad;
             merged = true;
 
-            // CHECK IF AN EXISTING ROAD TO THIS CROSSROAD ALREADY CONNECTS TO THE START CROSSROAD
+            // CHECK IF AN EXISTING ROAD IN THIS CROSSROAD ALREADY CONNECTS TO THE START CROSSROAD
             foreach (Road road in nearestCrossRoad.GetRoadList())
             {
-                if (road.start == start || road.end == start)
-                {
-                    if (LineUtil.Approximately(distanceToNearestCrossRoad, 0, .1f))
-                        return QueryStates.FAILED;
-
-                    end = new Crossroad(endingPoint);
-                    merged = false;
-                    break;
-                }
+                if (CheckRoadOverlap(start.GetPosition(), end.GetPosition(), road.start.GetPosition(), road.end.GetPosition()))
+                    return QueryStates.FAILED;
             }
         }
 
@@ -546,15 +556,8 @@ public class RoadMapGenerator : ScriptableObject
                 end = nearestCrossRoad;
                 foreach (Road road in nearestCrossRoad.GetRoadList())
                 {
-                    if (road.start == start || road.end == start)
-                    {
-                        //if (distanceToNearestCrossRoad <= 0)
-                        return QueryStates.FAILED; 
-
-                        //end = new Crossroad(endingPoint);
-                        //merged = false;
-                        //break;
-                    }
+                    if (CheckRoadOverlap(start.GetPosition(), end.GetPosition(), road.start.GetPosition(), road.end.GetPosition()))
+                        return QueryStates.FAILED;
                 }
             }
         }
@@ -572,12 +575,27 @@ public class RoadMapGenerator : ScriptableObject
    
         this.quadTree.Insert(r);
 
-        if (end.GetPosition() == start.GetPosition())
-            Debug.Log("end uguale a start");
-
-        // Debug.LogFormat("Road {0} - {1}", start.GetPosition(), end.GetPosition());
-
         return merged ? QueryStates.MERGED : QueryStates.SUCCEED;
+    }
+
+    private bool CheckRoadOverlap(Vector2 start1, Vector2 end1, Vector2 start2, Vector2 end2)
+    {
+        Vector2 v1 = (end1 - start1).normalized;
+        Vector2 v2 = (end2 - start2).normalized;
+
+        float dot = Vector2.Dot(v1, v2);
+
+        if ((start1 == start2 && LineUtil.Approximately(dot, 1)) ||
+            (start1 == end2 && LineUtil.Approximately(dot, -1)))
+
+            return true;
+
+        if ((end1 == start2 && LineUtil.Approximately(dot, -1)) ||
+            (end1 == end2 && LineUtil.Approximately(dot, 1)))
+
+            return true;
+
+        return false;
     }
 
     private bool intersectRoads(Crossroad intersection, Road r, float minimumLength)
@@ -601,6 +619,10 @@ public class RoadMapGenerator : ScriptableObject
 
         intersection.AddRoad(newSection1);
         intersection.AddRoad(newSection2);
+
+        this.quadTree.Remove(r);
+        this.quadTree.Insert(newSection1);
+        this.quadTree.Insert(newSection2);
 
         this.graph.RemoveEdge(r);
         this.graph.AddVertex(intersection);
