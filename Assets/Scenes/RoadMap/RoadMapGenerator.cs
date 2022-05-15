@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using QuikGraph;
 using QuikGraph.Algorithms.ConnectedComponents;
+using QuikGraph.Algorithms.ShortestPath;
 
 public class RoadMapGenerator : ScriptableObject
 {
@@ -95,6 +96,8 @@ public class RoadMapGenerator : ScriptableObject
         }
 
         Debug.LogFormat("iterations: {0}", iteration);
+
+        FindConnectivity();
 
         //this.quadTree.DrawDebug();
 
@@ -211,7 +214,7 @@ public class RoadMapGenerator : ScriptableObject
             model.transform.parent = render.transform;
             model.name = c.ToString();
         }
-        render.transform.position = Vector3.up * .65f;
+        render.transform.position = Vector3.up;
     }
 
     public void DrawDebug(Texture2D texture)
@@ -431,34 +434,7 @@ public class RoadMapGenerator : ScriptableObject
                     continue;
 
                 if (item is Road road)
-                {
-                    //if (start.GetPosition() == new Vector2(475.32f, 693.23f))
-                    //    Debug.Log("ciao2");
-
-
-                    //Vector2 v1 = (endingPoint - start.GetPosition()).normalized;
-                    //Vector2 v2 = (road.end.GetPosition() - road.start.GetPosition()).normalized;
-
-                    //float dot = Vector2.Dot(v1, v2);
-
-                    //if ((start.GetPosition() == road.start.GetPosition() && LineUtil.Approximately(dot, 1)) ||
-                    //    (start.GetPosition() == road.end.GetPosition() && LineUtil.Approximately(dot, -1)))
-                    //{
-                    //    end = null;
-                    //    return QueryStates.FAILED;
-                    //}
-
-                    //if ((endingPoint == road.start.GetPosition() && LineUtil.Approximately(dot, -1)) ||
-                    //    (endingPoint == road.end.GetPosition() && LineUtil.Approximately(dot, 1)))
-                    //{
-                    //    end = null;
-                    //    return QueryStates.FAILED;
-                    //}
-
-
-
-             
-
+                {             
                     // IF THE ROAD INTERSECTS ANOTHER ONE, FIND THE NEAREST FROM START POINT
                     if (LineUtil.IntersectLineSegments2D(start.GetPosition(), endingPoint, road.start.GetPosition(), road.end.GetPosition(), out intersection, out linesIntersection)
                         && !(intersection == start.GetPosition()) && intersection != endingPoint)
@@ -709,6 +685,30 @@ public class RoadMapGenerator : ScriptableObject
         }
         texture.Apply();
         texture.wrapMode = TextureWrapMode.Clamp;
+    }
+
+    private void FindConnectivity()
+    {
+        FloydWarshallAllShortestPathAlgorithm<Crossroad, Road> pathAlgorithm = new FloydWarshallAllShortestPathAlgorithm<Crossroad, Road>(this.graph.ToBidirectionalGraph(), x => 1f);
+        pathAlgorithm.Compute();
+
+        foreach (Crossroad c in this.graph.Vertices)
+        {
+            string output = "";
+            IEnumerable<Road> path;
+            if (pathAlgorithm.TryGetPath(c, c, out path))
+            {
+                foreach (Road r in path)
+                {
+                    output += r.ToString() + " | ";
+                }
+                Debug.Log(output);
+            }
+            else
+                Debug.Log("No path found for" + c);
+        }
+
+        
     }
 
     private void FixRoadMapConnectivity()

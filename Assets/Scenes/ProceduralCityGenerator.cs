@@ -63,8 +63,8 @@ public class ProceduralCityGenerator : MonoBehaviour
     public enum RoadMapRules
     {
         basic = 0,
-        checkers = 1,
-        sanFrancisco = 2
+        newYork = 1
+        //sanFrancisco = 2
     };
 
     void Start()
@@ -93,23 +93,22 @@ public class ProceduralCityGenerator : MonoBehaviour
         RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, minLotArea, roadLength, roadLengthVariability);
      
         RoadMapRule r;
-        r = new BasicRule();
 
-        // switch(this.rule)
-        // {
-        //     case RoadMapRules.basic:
-        //         r = new BasicRule();
-        //         break;
-        //     case RoadMapRules.checkers:
-        //         r = new CheckersRule();
-        //         break;
-        //     case RoadMapRules.sanFrancisco:
-        //         r = new SanFranciscoRule();
-        //         break;
-        //     default:
-        //         r = new BasicRule();
-        //         break;
-        // }
+        switch (this.rule)
+        {
+            case RoadMapRules.basic:
+                r = new BasicRule();
+                break;
+            case RoadMapRules.newYork:
+                r = new NewYorkRule();
+                break;
+            //case RoadMapRules.sanFrancisco:
+            //    r = new SanFranciscoRule();
+            //    break;
+            default:
+                r = new BasicRule();
+                break;
+        }
 
         roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle, iterationLimit);
 
@@ -120,9 +119,9 @@ public class ProceduralCityGenerator : MonoBehaviour
         roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
         //roadMapGenerator.DrawConnectivity(roadMap);
         roadMapGenerator.DrawDebug(roadMap);
-            
+
         //if (!File.Exists("Assets/Resources/RoadMapTexture.asset"))
-            UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
+        UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
 
         td.terrainLayers[3].diffuseTexture = roadMap;
 
