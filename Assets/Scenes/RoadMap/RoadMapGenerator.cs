@@ -97,7 +97,7 @@ public class RoadMapGenerator : ScriptableObject
 
         Debug.LogFormat("iterations: {0}", iteration);
 
-        FindConnectivity();
+        //FindConnectivity();
 
         //this.quadTree.DrawDebug();
 
@@ -687,16 +687,35 @@ public class RoadMapGenerator : ScriptableObject
         texture.wrapMode = TextureWrapMode.Clamp;
     }
 
+    public void DrawShortestCycles(Texture2D texture)
+    {
+        FillTextureWithTransparency(texture);
+
+        ShortestGraphCycles shortestGraphCycles = new ShortestGraphCycles(this.graph.Vertices);
+
+        foreach (List<Road> roads in shortestGraphCycles.Compute())
+        {
+            Color c = Random.ColorHSV();
+            foreach (Road r in roads)
+                drawLine(texture, r.start.GetPosition(), r.end.GetPosition(), c, r.highway ? this.highwayThickness : this.bywayThickness, false);
+        }
+        texture.Apply();
+        texture.wrapMode = TextureWrapMode.Clamp;
+    }
+
     private void FindConnectivity()
     {
+        //DijkstraShortestPathAlgorithm<Crossroad, Road> dijkstra = new DijkstraShortestPathAlgorithm<Crossroad, Road>(this.graph.ToBidirectionalGraph(), x => 1f);
         FloydWarshallAllShortestPathAlgorithm<Crossroad, Road> pathAlgorithm = new FloydWarshallAllShortestPathAlgorithm<Crossroad, Road>(this.graph.ToBidirectionalGraph(), x => 1f);
         pathAlgorithm.Compute();
+        //dijkstra.Compute();
 
         foreach (Crossroad c in this.graph.Vertices)
         {
             string output = "";
             IEnumerable<Road> path;
             if (pathAlgorithm.TryGetPath(c, c, out path))
+            //if (dijkstra.)
             {
                 foreach (Road r in path)
                 {

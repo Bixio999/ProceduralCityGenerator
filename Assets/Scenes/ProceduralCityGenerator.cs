@@ -118,7 +118,8 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
         //roadMapGenerator.DrawConnectivity(roadMap);
-        roadMapGenerator.DrawDebug(roadMap);
+        //roadMapGenerator.DrawDebug(roadMap);
+        roadMapGenerator.DrawShortestCycles(roadMap);
 
         //if (!File.Exists("Assets/Resources/RoadMapTexture.asset"))
         UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
