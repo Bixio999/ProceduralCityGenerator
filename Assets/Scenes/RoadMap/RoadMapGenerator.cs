@@ -26,9 +26,7 @@ public class RoadMapGenerator : ScriptableObject
     private int roadLength;
     private float roadLengthVariability;
 
-    private int minLotArea;
-
-    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int minLotArea, int roadLength, float roadLengthVariability)
+    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int roadLength, float roadLengthVariability)
     {
         RoadMapGenerator instance = CreateInstance<RoadMapGenerator>();
 
@@ -44,8 +42,6 @@ public class RoadMapGenerator : ScriptableObject
         instance.bywayThickness = bywayThickness;
         instance.roadLength = roadLength;
         instance.roadLengthVariability = roadLengthVariability;
-
-        instance.minLotArea = minLotArea;
 
         instance.graph = new UndirectedGraph<Crossroad, Road>();
 
@@ -104,6 +100,11 @@ public class RoadMapGenerator : ScriptableObject
         //this.FixRoadMapConnectivity();
     }
 
+    public IEnumerable<Road> GetRoads()
+    {
+        return this.graph.Edges;
+    }
+
     public void Render(GameObject highway, GameObject byway, GameObject crossroad, float scalingFactor, float roadModelsLength, float coordScaling)
     {
         GameObject render = new GameObject("RoadMap Render");
@@ -129,7 +130,7 @@ public class RoadMapGenerator : ScriptableObject
 
             //Debug.LogFormat("length of road {0}: {1}", road, vector.magnitude);
 
-            int nSections = Mathf.RoundToInt(vector.magnitude);
+            int nSections = Mathf.RoundToInt(vector.magnitude / (roadModelsLength * scalingFactor));
             //int nInterpolation = Mathf.CeilToInt((float) nSections / terrainInterpolationAccuracy);
 
             GameObject model = new GameObject();
@@ -140,7 +141,7 @@ public class RoadMapGenerator : ScriptableObject
                 GameObject roadSection = road.highway ? GameObject.Instantiate(highway) : GameObject.Instantiate(byway);
                 //Debug.Log(roadSection.transform.localPosition);
                 
-                Vector3 t = vector.normalized * i + start;
+                Vector3 t = vector * i / nSections + start;
                 t.y = Terrain.activeTerrain.SampleHeight(t);
                 //t -= start;
 
@@ -730,50 +731,50 @@ public class RoadMapGenerator : ScriptableObject
         
     }
 
-    private void FixRoadMapConnectivity()
-    {
-        StronglyConnectedComponentsAlgorithm<Crossroad, Road> algorithm;
+    //private void FixRoadMapConnectivity()
+    //{
+    //    StronglyConnectedComponentsAlgorithm<Crossroad, Road> algorithm;
 
-        bool completed = false;
+    //    bool completed = false;
 
-        while(!completed)
-        {
-            algorithm = new(this.graph.ToBidirectionalGraph());
-            algorithm.Compute();
-            Debug.LogFormat("strongly connected components: {0}", algorithm.ComponentCount);
+    //    while(!completed)
+    //    {
+    //        algorithm = new(this.graph.ToBidirectionalGraph());
+    //        algorithm.Compute();
+    //        Debug.LogFormat("strongly connected components: {0}", algorithm.ComponentCount);
 
-            foreach (BidirectionalGraph<Crossroad, Road> component in algorithm.Graphs)
-            {
-                float area = 0;
-                Queue<Crossroad> triangle = new Queue<Crossroad>(3);
-                foreach (Crossroad v in component.Vertices)
-                {
-                    if (triangle.Count < 3)
-                        triangle.Enqueue(v);
-                    else
-                    {
-                        Crossroad[] t = triangle.ToArray();
+    //        foreach (BidirectionalGraph<Crossroad, Road> component in algorithm.Graphs)
+    //        {
+    //            float area = 0;
+    //            Queue<Crossroad> triangle = new Queue<Crossroad>(3);
+    //            foreach (Crossroad v in component.Vertices)
+    //            {
+    //                if (triangle.Count < 3)
+    //                    triangle.Enqueue(v);
+    //                else
+    //                {
+    //                    Crossroad[] t = triangle.ToArray();
 
-                        Vector2 a = t[0].GetPosition() - t[1].GetPosition();
-                        Vector2 b = t[0].GetPosition() - t[2].GetPosition();
+    //                    Vector2 a = t[0].GetPosition() - t[1].GetPosition();
+    //                    Vector2 b = t[0].GetPosition() - t[2].GetPosition();
 
-                        float alpha = Vector2.Angle(a, b);
+    //                    float alpha = Vector2.Angle(a, b);
 
-                        area += a.magnitude * b.magnitude * Mathf.Sin(alpha) * 0.5f;
+    //                    area += a.magnitude * b.magnitude * Mathf.Sin(alpha) * 0.5f;
 
-                        triangle.Dequeue();
-                    }
-                }
+    //                    triangle.Dequeue();
+    //                }
+    //            }
 
-                if (area < this.minLotArea)
-                {
-                    // MERGE GRAPH
-                    continue;
-                }
-            }
-            completed = true;
-        }
+    //            if (area < this.minLotArea)
+    //            {
+    //                // MERGE GRAPH
+    //                continue;
+    //            }
+    //        }
+    //        completed = true;
+    //    }
 
         
-    }
+    //}
 }
