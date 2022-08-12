@@ -131,7 +131,9 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         Texture2D roadMap = new Texture2D(x, y, TextureFormat.RGBA32, true);
 
-        roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
+        GameObject RMrender = roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
+        RMrender.transform.position = Vector3.up * 0.5f;
+
         //roadMapGenerator.DrawConnectivity(roadMap);
         roadMapGenerator.DrawDebug(roadMap);
         //roadMapGenerator.DrawShortestCycles(roadMap);
@@ -144,6 +146,8 @@ public class ProceduralCityGenerator : MonoBehaviour
         // BUILDING GENERATION
 
         SpawnBuildings(roadMapGenerator.GetRoads(), td.size.x / x, populationMap, maxPopDensityValue - maxPopDensityValue * popDensityModelThreshold);
+
+        // TERRAIN TEXTURE PAINTING
 
         float mapsFactor = (float) Mathf.Min(td.alphamapHeight, x) / Mathf.Max(td.alphamapHeight, x); 
 
@@ -182,9 +186,13 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         td.SetAlphamaps(0,0,alphaMap);
 
+        // MOVE CAMERA TO CITY CENTRE
+
         Vector3 v = new Vector3(cityCentre.x, 0, cityCentre.y) + Terrain.activeTerrain.GetPosition();
         v *= td.size.x / x;
         v.y = Terrain.activeTerrain.SampleHeight(v) + 1;
+
+        Camera.main.transform.position = v;
 
         //GameObject building = ProceduralBuildingGenerator.Instance.GenerateFromRuleSet("SimpleOfficeBuilding", officeBuildingMaxLot);
         //building.transform.position = v;

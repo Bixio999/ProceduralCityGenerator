@@ -105,7 +105,7 @@ public class RoadMapGenerator : ScriptableObject
         return this.graph.Edges;
     }
 
-    public void Render(GameObject highway, GameObject byway, GameObject crossroad, float scalingFactor, float roadModelsLength, float coordScaling)
+    public GameObject Render(GameObject highway, GameObject byway, GameObject crossroad, float scalingFactor, float roadModelsLength, float coordScaling)
     {
         GameObject render = new GameObject("RoadMap Render");
 
@@ -216,7 +216,8 @@ public class RoadMapGenerator : ScriptableObject
             model.transform.parent = render.transform;
             model.name = c.ToString();
         }
-        render.transform.position = Vector3.up;
+        //render.transform.position = Vector3.up * 0.5f;
+        return render;
     }
 
     public void DrawDebug(Texture2D texture)
