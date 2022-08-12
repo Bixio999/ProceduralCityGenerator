@@ -1,7 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.IO;
+using System;
+using Random = UnityEngine.Random;
 
 public class ProceduralCityGenerator : MonoBehaviour
 {
@@ -52,13 +53,13 @@ public class ProceduralCityGenerator : MonoBehaviour
     [Range(0, 1)] public float roadLengthVariability;
     public int highwayThickness;
     public int bywayThickness;
-    public int minLotArea;
     public GameObject highway;
     public GameObject byway;
     public GameObject crossroad;
     public float modelsScalingFactor = .2f;
     public float modelsLength = 5;
-
+    public float highwayModelWidth = 7;
+    public float bywayModelWidth = 4;
 
     public enum RoadMapRules
     {
@@ -66,6 +67,22 @@ public class ProceduralCityGenerator : MonoBehaviour
         newYork = 1
         //sanFrancisco = 2
     };
+
+    // BUILDING GENERATOR PARAMETERS
+
+    [Foldout("Building Generator")]
+    public Vector2Int officeBuildingMaxLot;
+    public Vector2Int simpleBuildingMaxLot;
+    [Range(0, 1)] public float popDensityModelThreshold = .1f;
+    public int buildingSpacing = 5;
+    [Range(0, 1)] public float modelSelectionHighwayAdvantage = .5f;
+    [Range(.5f, 2)] public float modelSelectionMaxIncreasal = 1.2f;
+    public int buildingCacheSize = 10;
+
+    public GameObject buildingLotDebugModel;
+
+
+    /* -------------------------------------- */
 
     void Start()
     {
@@ -86,11 +103,11 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         float [,] map = InputMapGenerator.generatePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
 
-        (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
+        (float[,] populationMap, Vector2 cityCentre, float maxPopDensityValue) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         td.SetHeights(0,0, map);
 
-        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, minLotArea, roadLength, roadLengthVariability);
+        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, roadLengthVariability);
      
         RoadMapRule r;
 
@@ -112,23 +129,21 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle, iterationLimit);
 
-        //Texture2D roadMap = td.terrainLayers[3].diffuseTexture;
-
         Texture2D roadMap = new Texture2D(x, y, TextureFormat.RGBA32, true);
 
         roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
         //roadMapGenerator.DrawConnectivity(roadMap);
-        //roadMapGenerator.DrawDebug(roadMap);
-        roadMapGenerator.DrawShortestCycles(roadMap);
+        roadMapGenerator.DrawDebug(roadMap);
+        //roadMapGenerator.DrawShortestCycles(roadMap);
 
-        //if (!File.Exists("Assets/Resources/RoadMapTexture.asset"))
         UnityEditor.AssetDatabase.CreateAsset(roadMap, "Assets/Resources/RoadMapTexture.asset");
 
         td.terrainLayers[3].diffuseTexture = roadMap;
 
 
+        // BUILDING GENERATION
 
-        // Debug.LogFormat("corner color value: {0}", roadMap.GetPixel(0,0));
+        SpawnBuildings(roadMapGenerator.GetRoads(), td.size.x / x, populationMap, maxPopDensityValue - maxPopDensityValue * popDensityModelThreshold);
 
         float mapsFactor = (float) Mathf.Min(td.alphamapHeight, x) / Mathf.Max(td.alphamapHeight, x); 
 
@@ -170,7 +185,14 @@ public class ProceduralCityGenerator : MonoBehaviour
         Vector3 v = new Vector3(cityCentre.x, 0, cityCentre.y) + Terrain.activeTerrain.GetPosition();
         v *= td.size.x / x;
         v.y = Terrain.activeTerrain.SampleHeight(v) + 1;
-        player.transform.position = v;
+
+        //GameObject building = ProceduralBuildingGenerator.Instance.GenerateFromRuleSet("SimpleOfficeBuilding", officeBuildingMaxLot);
+        //building.transform.position = v;
+        //building.transform.localScale *= modelsScalingFactor;
+
+
+        //player.transform.position = v;
+
         //spawnPlayer(map, x, y);
 
         if (savePopulationDensity)
@@ -207,5 +229,201 @@ public class ProceduralCityGenerator : MonoBehaviour
         player.transform.position = position;
     }
 
-    
+
+
+    private void SpawnBuildings(IEnumerable<Road> roads, float coordsScaling, float[,] populationMap, float popDensityThreshold)
+    {
+        GameObject folder = new GameObject("Buildings");
+
+        Dictionary<string, List<GameObject>> cache = new Dictionary<string, List<GameObject>>();
+
+        foreach(Road road in roads)
+        {
+            // CALCULATE ROAD START AND END IN 3D WORLD
+
+            Vector2 v = road.start.GetPosition();
+            Vector3 start = new Vector3(v.x, 0, v.y) * coordsScaling;
+            start += Terrain.activeTerrain.GetPosition();
+            start.y = Terrain.activeTerrain.SampleHeight(start);
+
+            v = road.end.GetPosition();
+            Vector3 end = new Vector3(v.x, 0, v.y) * coordsScaling;
+            end += Terrain.activeTerrain.GetPosition();
+            end.y = Terrain.activeTerrain.SampleHeight(end);
+
+            (Vector3, Vector3)[] sides = { (end, start), (start, end) };
+
+            //Vector3 rotation = new Vector3(0, -90, 0);
+
+            float offset = (road.highway ? highway.transform.localPosition.x : byway.transform.localPosition.x) * modelsScalingFactor;
+
+
+            foreach ((Vector3 B, Vector3 A) in sides) // Vectors are considered as: A ---> B
+            {
+                // CALCULATE ROAD DIRECTION 
+
+                Vector3 direction = B - A;
+
+                Vector3 sideOffset = Quaternion.AngleAxis(-90, Vector3.up) * direction.normalized * offset;
+                Quaternion rotation = Quaternion.LookRotation(direction) * Quaternion.AngleAxis(-90, Vector3.up);
+
+                float dist = buildingSpacing;
+                while (dist < direction.magnitude)
+                {
+                    // Position of the current building in 3D
+                    Vector3 P = direction.normalized * dist + sideOffset + A;
+
+
+                    // Compute the 2D coords to access population density matrix
+                    Vector3 temp = P - Terrain.activeTerrain.GetPosition();
+                    temp /= coordsScaling;
+                    Vector2 P_2D = new(temp.x, temp.z);
+
+                    float popValue = populationMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)];
+
+                    // Get the right model type 
+                    Vector2 buildingLotSize, lotSizeForGeneration;
+                    string model;
+                    if (road.highway)
+                        popValue *= Random.Range(modelSelectionHighwayAdvantage, modelSelectionMaxIncreasal);
+                    else
+                        popValue *= Random.Range(0, modelSelectionMaxIncreasal);
+                    if (popValue > popDensityThreshold)
+                    {
+                        buildingLotSize = officeBuildingMaxLot;
+                        model = ProceduralBuildingGenerator.Instance.ruleSets[0].name;
+                        lotSizeForGeneration = officeBuildingMaxLot;
+                    }
+                    else
+                    {
+                        buildingLotSize = simpleBuildingMaxLot;
+                        model = ProceduralBuildingGenerator.Instance.ruleSets[1].name;
+                        lotSizeForGeneration = simpleBuildingMaxLot;
+                    }
+                    buildingLotSize *= modelsScalingFactor;
+
+                    // check if the current building is out of boundaries
+                    if (dist + buildingLotSize.x > direction.magnitude)
+                        break;
+
+                    // Compute the center of the building
+                    Vector3 center = P;
+                    center += rotation * Vector3.forward * buildingLotSize.y / 2;
+                    center += rotation * Vector3.right * buildingLotSize.x / 2;
+
+                    // Check for road collision
+                    Collider[] hits = Physics.OverlapBox(center,
+                        Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y),
+                        rotation,
+                        LayerMask.GetMask("RoadMap"));
+
+                    DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
+
+
+                    if (hits.Length > 1)
+                    {
+                        print("building collision with road");
+                        Vector3 nearestHit = hits[0].ClosestPointOnBounds(center);
+                        float nearestDistance = (nearestHit - center).magnitude;
+                        for (int i = 1; i < hits.Length; i++)
+                        {
+                            Vector3 hit = hits[i].ClosestPointOnBounds(center);
+                            float distance = (hit - center).magnitude;
+                            if (distance < nearestDistance)
+                            {
+                                nearestHit = hit;
+                                nearestDistance = distance;
+                            }
+                        }
+                        Debug.DrawLine(center, nearestHit, Color.red, Mathf.Infinity);
+                    }
+
+                    Debug.DrawLine(P, center, Color.cyan, Mathf.Infinity);
+
+                    // Spawn the debug cube
+                    //GameObject obj = Instantiate(buildingLotDebugModel);
+                    //temp = new(buildingLotSize.x, 0, buildingLotSize.y);
+                    //if (popValue > popDensityThreshold)
+                    //    temp.y = 100 * Random.Range(.5f, 1) * modelsScalingFactor;
+                    //else
+                    //    temp.y = 10 * Random.Range(.7f, 1) * modelsScalingFactor ;
+                    //obj.transform.localScale = temp;
+
+                    // Generate building
+                    List<GameObject> modelCache;
+                    if (cache.ContainsKey(model))
+                        modelCache = cache[model];
+                    else
+                    {
+                        modelCache = new List<GameObject>();
+                        cache[model] = modelCache;
+                    }
+                    GameObject obj;
+                    if (modelCache.Count < buildingCacheSize)
+                    {
+                        obj = ProceduralBuildingGenerator.Instance.GenerateFromRuleSet(model, lotSizeForGeneration);
+                        modelCache.Add(obj);
+                        obj.transform.localScale *= modelsScalingFactor;
+                    }
+                    else
+                    {
+                        obj = Instantiate(modelCache[Random.Range(0, modelCache.Count)]);
+                        //return;
+                    }
+
+                    // Set position and rotation of the building
+                    obj.transform.position = P;
+                    obj.transform.localRotation = rotation;
+                    temp = obj.transform.localEulerAngles;
+                    temp.z = 0;
+                    obj.transform.localEulerAngles = temp;
+
+                    obj.transform.parent = folder.transform;
+
+                    // Update current distance for the next building
+                    dist += buildingLotSize.x + buildingSpacing;
+                }
+
+            }
+
+            //return;
+        }
+    }
+
+    public void DrawBox(Vector3 pos, Quaternion rot, Vector3 scale, Color c)
+    {
+        // create matrix
+        Matrix4x4 m = new Matrix4x4();
+        m.SetTRS(pos, rot, scale);
+
+        var point1 = m.MultiplyPoint(new Vector3(-0.5f, -0.5f, 0.5f));
+        var point2 = m.MultiplyPoint(new Vector3(0.5f, -0.5f, 0.5f));
+        var point3 = m.MultiplyPoint(new Vector3(0.5f, -0.5f, -0.5f));
+        var point4 = m.MultiplyPoint(new Vector3(-0.5f, -0.5f, -0.5f));
+
+        var point5 = m.MultiplyPoint(new Vector3(-0.5f, 0.5f, 0.5f));
+        var point6 = m.MultiplyPoint(new Vector3(0.5f, 0.5f, 0.5f));
+        var point7 = m.MultiplyPoint(new Vector3(0.5f, 0.5f, -0.5f));
+        var point8 = m.MultiplyPoint(new Vector3(-0.5f, 0.5f, -0.5f));
+
+        Debug.DrawLine(point1, point2, c);
+        Debug.DrawLine(point2, point3, c);
+        Debug.DrawLine(point3, point4, c);
+        Debug.DrawLine(point4, point1, c);
+
+        Debug.DrawLine(point5, point6, c);
+        Debug.DrawLine(point6, point7, c);
+        Debug.DrawLine(point7, point8, c);
+        Debug.DrawLine(point8, point5, c);
+
+        Debug.DrawLine(point1, point5, c);
+        Debug.DrawLine(point2, point6, c);
+        Debug.DrawLine(point3, point7, c);
+        Debug.DrawLine(point4, point8, c);
+
+        // optional axis display
+        //Debug.DrawRay(m.GetPosition(), m.GetForward(), Color.magenta);
+        //Debug.DrawRay(m.GetPosition(), m.GetUp(), Color.yellow);
+        //Debug.DrawRay(m.GetPosition(), m.GetRight(), Color.red);
+    }
 }

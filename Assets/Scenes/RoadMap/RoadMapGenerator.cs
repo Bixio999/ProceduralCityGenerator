@@ -140,6 +140,7 @@ public class RoadMapGenerator : ScriptableObject
             {
                 GameObject roadSection = road.highway ? GameObject.Instantiate(highway) : GameObject.Instantiate(byway);
                 //Debug.Log(roadSection.transform.localPosition);
+                roadSection.layer = LayerMask.NameToLayer("RoadMap");
                 
                 Vector3 t = vector * i / nSections + start;
                 t.y = Terrain.activeTerrain.SampleHeight(t);
