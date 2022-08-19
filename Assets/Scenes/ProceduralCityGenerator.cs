@@ -78,6 +78,7 @@ public class ProceduralCityGenerator : MonoBehaviour
     [Range(0, 1)] public float modelSelectionHighwayAdvantage = .5f;
     [Range(.5f, 2)] public float modelSelectionMaxIncreasal = 1.2f;
     public int buildingCacheSize = 10;
+    public int obstacleCollisionAngleTolerance = 20;
 
     public GameObject buildingLotDebugModel;
 
@@ -216,29 +217,6 @@ public class ProceduralCityGenerator : MonoBehaviour
             UnityEditor.EditorApplication.isPlaying = false;
     }
 
-    private void spawnPlayer(float[,] map, int w, int h)
-    {
-        Vector3 position = Random.insideUnitSphere * (w - 1);
-        position.x = Mathf.Abs(position.x);
-        position.z = Mathf.Abs(position.z);
-        position.y = 0;
-
-        while(map[Mathf.RoundToInt(position.x), Mathf.RoundToInt(position.z)] == 0)
-        {
-            position = Random.insideUnitSphere * (w - 1);
-            position.x = Mathf.Abs(position.x);
-            position.z = Mathf.Abs(position.z);
-        }
-
-        position.x = Mathf.Clamp(position.x + this.transform.position.x, this.transform.position.x, - this.transform.position.x);
-        position.z = Mathf.Clamp(position.z + this.transform.position.z, this.transform.position.z, - this.transform.position.z);
-        position.y = Terrain.activeTerrain.SampleHeight(position) + 2;
-
-        player.transform.position = position;
-    }
-
-
-
     private void SpawnBuildings(IEnumerable<Road> roads, float coordsScaling, float[,] populationMap, float popDensityThreshold)
     {
         GameObject folder = new GameObject("Buildings");
@@ -274,6 +252,9 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                 Vector3 sideOffset = Quaternion.AngleAxis(-90, Vector3.up) * direction.normalized * offset;
                 Quaternion rotation = Quaternion.LookRotation(direction) * Quaternion.AngleAxis(-90, Vector3.up);
+
+                Vector3 upRoad = Vector3.Cross(sideOffset.normalized, direction.normalized).normalized;
+            
 
                 float dist = buildingSpacing;
                 while (dist < direction.magnitude)
@@ -321,75 +302,203 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     // Check for road collision
                     Collider[] hits = Physics.OverlapBox(center,
-                        Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y),
+                        Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y) / 2f,
                         rotation,
-                        LayerMask.GetMask("RoadMap"));
+                        LayerMask.GetMask("Obstacles"));
 
                     DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
 
+                    Physics.SyncTransforms();
+                    bool invalidPosition = false;
 
-                    if (hits.Length > 1)
+                    Debug.DrawRay(P, upRoad, Color.green, Mathf.Infinity);
+                    float maxStreetAngle = Vector3.SignedAngle(sideOffset.normalized, (center - P).normalized, upRoad) + obstacleCollisionAngleTolerance;
+                    print(maxStreetAngle);
+
+                    Vector3 cumulativeHit = Vector3.zero;
+                    foreach(Collider hit in hits)
                     {
-                        print("building collision with road");
-                        Vector3 nearestHit = hits[0].ClosestPointOnBounds(center);
-                        float nearestDistance = (nearestHit - center).magnitude;
-                        for (int i = 1; i < hits.Length; i++)
+                        Vector3 t = center - hit.ClosestPointOnBounds(center);
+                        cumulativeHit += t;
+
+                        if (hit.gameObject.tag == "Building" || Vector3.Angle(sideOffset.normalized, t.normalized) > maxStreetAngle)
                         {
-                            Vector3 hit = hits[i].ClosestPointOnBounds(center);
-                            float distance = (hit - center).magnitude;
-                            if (distance < nearestDistance)
-                            {
-                                nearestHit = hit;
-                                nearestDistance = distance;
-                            }
+                            Debug.DrawRay(center, -t, Color.red, Mathf.Infinity);
+                            invalidPosition = true;
                         }
-                        Debug.DrawLine(center, nearestHit, Color.red, Mathf.Infinity);
+                        else
+                        {
+                            Debug.DrawRay(center, -t, Color.cyan, Mathf.Infinity);
+                            Debug.Log("collision with " + hit.gameObject.name);
+                        }
                     }
 
-                    Debug.DrawLine(P, center, Color.cyan, Mathf.Infinity);
+                    cumulativeHit /= hits.Length;
+                    //Debug.DrawLine(center, center + cumulativeHit, Color.cyan, Mathf.Infinity);
 
-                    // Spawn the debug cube
-                    //GameObject obj = Instantiate(buildingLotDebugModel);
-                    //temp = new(buildingLotSize.x, 0, buildingLotSize.y);
-                    //if (popValue > popDensityThreshold)
-                    //    temp.y = 100 * Random.Range(.5f, 1) * modelsScalingFactor;
+                    float angle = -Vector3.SignedAngle(direction.normalized, cumulativeHit.normalized, rotation * Vector3.up);
+                    Vector3 xDir = direction.normalized * cumulativeHit.magnitude * Mathf.Cos(angle);
+                    Vector3 yDir = sideOffset.normalized * cumulativeHit.magnitude * Mathf.Sin(angle);
+                    Vector3 yOffset = (buildingLotSize.y / 2f - yDir.magnitude) * sideOffset.normalized;
+
+                    if (!invalidPosition)
+                    {
+                        Debug.DrawRay(center, xDir, Color.blue, Mathf.Infinity);
+                        Debug.DrawRay(center, yDir, Color.magenta, Mathf.Infinity);
+                        Debug.DrawRay(center, yOffset, Color.green, Mathf.Infinity);
+                    }
                     //else
-                    //    temp.y = 10 * Random.Range(.7f, 1) * modelsScalingFactor ;
-                    //obj.transform.localScale = temp;
+                    //    return;
 
-                    // Generate building
-                    List<GameObject> modelCache;
-                    if (cache.ContainsKey(model))
-                        modelCache = cache[model];
-                    else
-                    {
-                        modelCache = new List<GameObject>();
-                        cache[model] = modelCache;
-                    }
-                    GameObject obj;
-                    if (modelCache.Count < buildingCacheSize)
-                    {
-                        obj = ProceduralBuildingGenerator.Instance.GenerateFromRuleSet(model, lotSizeForGeneration);
-                        modelCache.Add(obj);
-                        obj.transform.localScale *= modelsScalingFactor;
-                    }
-                    else
-                    {
-                        obj = Instantiate(modelCache[Random.Range(0, modelCache.Count)]);
-                        //return;
-                    }
 
-                    // Set position and rotation of the building
-                    obj.transform.position = P;
-                    obj.transform.localRotation = rotation;
-                    temp = obj.transform.localEulerAngles;
-                    temp.z = 0;
-                    obj.transform.localEulerAngles = temp;
+                    //while (hits.Length > 1)
+                    //{
+                    //    print("building collision with road " + road.ToString());
 
-                    obj.transform.parent = folder.transform;
+                    //    Collider nearestObject = hits[0];
+                    //    Vector3 nearestHit = nearestObject.ClosestPointOnBounds(center);
+                    //    float nearestDistance = (nearestHit - center).magnitude;
+                    //    for (int i = 1; i < hits.Length; i++)
+                    //    {
+                    //        Vector3 hit = hits[i].ClosestPointOnBounds(center);
+                    //        float distance = (hit - center).magnitude;
+                    //        if (distance < nearestDistance)
+                    //        {
+                    //            nearestHit = hit;
+                    //            nearestDistance = distance;
+                    //            nearestObject = hits[i];
+                    //        }
+                    //    }
+
+                    //    // Check if the hit comes from front road
+
+                    //    float angle = - Vector3.SignedAngle(direction.normalized, (center - nearestHit).normalized, rotation * Vector3.up);
+                    //    print("angle computed: " + angle);
+
+                    //    Vector3 xDir = direction.normalized * nearestDistance * Mathf.Cos(angle);
+
+                    //    if (Vector3.Dot(direction.normalized, xDir.normalized) <= 0)
+                    //    {
+                    //        //if (Vecto)
+
+                    //        invalidPosition = true;
+
+
+                    //        //if (nearestObject.gameObject.tag == "Building")
+                    //        //    invalidPosition = true;
+                    //        break;
+                    //    }
+
+                    //    Vector3 yDir = sideOffset.normalized * nearestDistance * Mathf.Sin(angle);
+
+                    //    Vector3 yOffset = (buildingLotSize.y / 2f - yDir.magnitude) * sideOffset.normalized;
+
+
+                    //    Debug.DrawRay(P, xDir, Color.blue, Mathf.Infinity);
+                    //    Debug.DrawRay(P, yDir, Color.magenta, Mathf.Infinity);
+                    //    Debug.DrawRay(P, yOffset, Color.green, Mathf.Infinity);
+                    //    //if (angle > 90 || angle <= 0) break;
+
+                    //    P += yOffset;
+                    //    P += xDir;
+
+                    //    dist += xDir.magnitude;
+
+                    //    Debug.DrawLine(center, nearestHit, Color.cyan, Mathf.Infinity);
+
+                    //    // Update the center of the building
+                    //    center = P;
+                    //    center += rotation * Vector3.forward * buildingLotSize.y / 2;
+                    //    center += rotation * Vector3.right * buildingLotSize.x / 2;
+
+                    //    // Check again for road collision
+                    //    hits = Physics.OverlapBox(center,
+                    //        Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y),
+                    //        rotation,
+                    //        LayerMask.GetMask("RoadMap"));
+
+                    //    DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
+                    //}
+
+                    //if (invalidPosition)
+                    //    break;
+
+                    //Debug.DrawLine(P, center, Color.cyan, Mathf.Infinity); // check lot center position
+
+                    //// Check for building collision
+                    //hits = Physics.OverlapBox(center,
+                    //    Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y) / 2f,
+                    //    rotation,
+                    //    LayerMask.GetMask("Building"));
+
+                    //if (hits.Length > 1)
+                    //{
+                    //    print("building collision with building in road: " + road.ToString());
+                    //    Vector3 nearestHit = hits[0].ClosestPointOnBounds(center);
+                    //    float nearestDistance = (nearestHit - center).magnitude;
+                    //    for (int i = 1; i < hits.Length; i++)
+                    //    {
+                    //        Vector3 hit = hits[i].ClosestPointOnBounds(center);
+                    //        float distance = (hit - center).magnitude;
+                    //        if (distance < nearestDistance)
+                    //        {
+                    //            nearestHit = hit;
+                    //            nearestDistance = distance;
+                    //        }
+                    //    }
+                    //    Debug.DrawLine(center, nearestHit, Color.cyan, Mathf.Infinity);
+                    //    //return;
+                    //}
+
+                        // Spawn the debug cube
+                        //GameObject obj = Instantiate(buildingLotDebugModel);
+                        //temp = new(buildingLotSize.x, 0, buildingLotSize.y);
+                        //if (popValue > popDensityThreshold)
+                        //    temp.y = 100 * Random.Range(.5f, 1) * modelsScalingFactor;
+                        //else
+                        //    temp.y = 10 * Random.Range(.7f, 1) * modelsScalingFactor ;
+                        //obj.transform.localScale = temp;
+
+                    if (!invalidPosition)
+                    {
+                        // Generate building
+                        List<GameObject> modelCache;
+                        if (cache.ContainsKey(model))
+                            modelCache = cache[model];
+                        else
+                        {
+                            modelCache = new List<GameObject>();
+                            cache[model] = modelCache;
+                        }
+                        GameObject obj;
+                        if (modelCache.Count < buildingCacheSize)
+                        {
+                            obj = ProceduralBuildingGenerator.Instance.GenerateFromRuleSet(model, lotSizeForGeneration);
+                            modelCache.Add(obj);
+                            obj.transform.localScale *= modelsScalingFactor;
+                        }
+                        else
+                        {
+                            obj = Instantiate(modelCache[Random.Range(0, modelCache.Count)]);
+                            //return;
+                        }
+
+                        // Set position and rotation of the building
+                        obj.transform.position = P;
+                        obj.transform.localRotation = rotation;
+                        temp = obj.transform.localEulerAngles;
+                        temp.z = 0;
+                        obj.transform.localEulerAngles = temp;
+
+                        obj.transform.parent = folder.transform;
+                        obj.layer = LayerMask.NameToLayer("Obstacles");
+                        obj.tag = "Building";
+                    }
 
                     // Update current distance for the next building
                     dist += buildingLotSize.x + buildingSpacing;
+
+                    //if (hitDetected) return;
                 }
 
             }

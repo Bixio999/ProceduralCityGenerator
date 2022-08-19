@@ -3,12 +3,14 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Road
+  - Building
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - RoadMap
+  - Obstacles
   - Water
   - UI
   - 

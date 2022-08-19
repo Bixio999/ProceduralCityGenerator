@@ -394,6 +394,7 @@ MonoBehaviour:
   modelSelectionHighwayAdvantage: 0.5
   modelSelectionMaxIncreasal: 1.2
   buildingCacheSize: 25
+  obstacleCollisionAngleTolerance: 20
   buildingLotDebugModel: {fileID: 807971037119972668, guid: 56aafaa3e4d2b470f820d77a5d85bb52, type: 3}
 --- !u!4 &1696565347
 Transform:
