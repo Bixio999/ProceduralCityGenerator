@@ -12,7 +12,6 @@ public class ProceduralCityGenerator : MonoBehaviour
     public bool savePopulationDensity = false;
     public bool saveRoads = false;
     public bool saveHDRoads = false;
-    public GameObject player;
 
 
 
@@ -71,9 +70,13 @@ public class ProceduralCityGenerator : MonoBehaviour
     // BUILDING GENERATOR PARAMETERS
 
     [Foldout("Building Generator")]
-    public Vector2Int officeBuildingMaxLot;
-    public Vector2Int simpleBuildingMaxLot;
-    [Range(0, 1)] public float popDensityModelThreshold = .1f;
+
+    public Vector2Int[] buildingLotSizes;
+    [Range(0, 1)] public float[] popDensityModelTresholds;
+
+    //public Vector2Int officeBuildingMaxLot;
+    //public Vector2Int simpleBuildingMaxLot;
+    //[Range(0, 1)] public float popDensityModelThreshold = .1f;
     public int buildingSpacing = 5;
     [Range(0, 1)] public float modelSelectionHighwayAdvantage = .5f;
     [Range(.5f, 2)] public float modelSelectionMaxIncreasal = 1.2f;
@@ -92,6 +95,14 @@ public class ProceduralCityGenerator : MonoBehaviour
         Random.InitState(RandomSeed);
         Debug.Log(RandomSeed);
 
+        // CHECK FOR VALID INPUT PARAMETERS
+
+        int buildingModels = ProceduralBuildingGenerator.Instance.ruleSets.Length;
+        if (buildingModels != buildingLotSizes.Length || buildingModels != popDensityModelTresholds.Length + 1)
+            return;
+
+        /* -------------- */
+
         Terrain t = terrain.GetComponent<Terrain> ();
 		TerrainData td = t.terrainData;
 
@@ -104,7 +115,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         float [,] map = InputMapGenerator.generatePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
 
-        (float[,] populationMap, Vector2 cityCentre, float maxPopDensityValue) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
+        (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         td.SetHeights(0,0, map);
 
@@ -146,7 +157,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         // BUILDING GENERATION
 
-        SpawnBuildings(roadMapGenerator.GetRoads(), td.size.x / x, in populationMap, maxPopDensityValue - maxPopDensityValue * popDensityModelThreshold, in map);
+        SpawnBuildings(roadMapGenerator.GetRoads(), td.size.x / x, in populationMap, in map);
 
         // TERRAIN TEXTURE PAINTING
 
@@ -217,7 +228,7 @@ public class ProceduralCityGenerator : MonoBehaviour
             UnityEditor.EditorApplication.isPlaying = false;
     }
 
-    private void SpawnBuildings(IEnumerable<Road> roads, float coordsScaling, in float[,] populationMap, float popDensityThreshold, in float[,] heightMap)
+    private void SpawnBuildings(IEnumerable<Road> roads, float coordsScaling, in float[,] populationMap, in float[,] heightMap)
     {
         GameObject folder = new GameObject("Buildings");
 
@@ -270,26 +281,26 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     float popValue = populationMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)];
 
-                    // Get the right model type  -- TODO multiple building type with threshold and lot sizes arrays
+                    // Get the right model type 
                     Vector2 buildingLotSize, lotSizeForGeneration;
                     string model;
                     if (road.highway)
                         popValue *= Random.Range(modelSelectionHighwayAdvantage, modelSelectionMaxIncreasal);
                     else
                         popValue *= Random.Range(0, modelSelectionMaxIncreasal);
-                    if (popValue > popDensityThreshold)
+
+                    float maxValue = 1f, minValue;
+                    int i;
+                    for (i = 0; i < popDensityModelTresholds.Length; i++)
                     {
-                        buildingLotSize = officeBuildingMaxLot;
-                        model = ProceduralBuildingGenerator.Instance.ruleSets[0].name;
-                        lotSizeForGeneration = officeBuildingMaxLot;
+                        minValue = 1 - popDensityModelTresholds[i];
+                        if (maxValue >= popValue && popValue > minValue)
+                            break;
+                        maxValue = minValue;
                     }
-                    else
-                    {
-                        buildingLotSize = simpleBuildingMaxLot;
-                        model = ProceduralBuildingGenerator.Instance.ruleSets[1].name;
-                        lotSizeForGeneration = simpleBuildingMaxLot;
-                    }
-                    buildingLotSize *= modelsScalingFactor;
+                    lotSizeForGeneration = buildingLotSizes[i];
+                    buildingLotSize = lotSizeForGeneration * modelsScalingFactor;
+                    model = ProceduralBuildingGenerator.Instance.ruleSets[i].name;
 
                     // check if the current building is out of boundaries
                     if (dist + buildingLotSize.x > direction.magnitude)
@@ -312,7 +323,6 @@ public class ProceduralCityGenerator : MonoBehaviour
                         if (heightMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)] == 0)
                             invalidPosition = true;
                     }
-
                     if (invalidPosition)
                         continue;
 
@@ -320,6 +330,8 @@ public class ProceduralCityGenerator : MonoBehaviour
                     Vector3 center = P;
                     center += rotation * Vector3.forward * buildingLotSize.y / 2;
                     center += rotation * Vector3.right * buildingLotSize.x / 2;
+
+                    Physics.SyncTransforms();
 
                     // Check for road or building collision
                     Collider[] hits = Physics.OverlapBox(center,
@@ -329,7 +341,6 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
 
-                    Physics.SyncTransforms();
                     invalidPosition = false;
 
                     Debug.DrawRay(P, upRoad, Color.green, Mathf.Infinity);
@@ -348,10 +359,7 @@ public class ProceduralCityGenerator : MonoBehaviour
                             invalidPosition = true;
                         }
                         else
-                        {
                             Debug.DrawRay(center, -t, Color.cyan, Mathf.Infinity);
-                            Debug.Log("collision with " + hit.gameObject.name);
-                        }
                     }
 
                     if (invalidPosition)

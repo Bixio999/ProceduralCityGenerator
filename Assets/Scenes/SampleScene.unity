@@ -355,7 +355,6 @@ MonoBehaviour:
   savePopulationDensity: 0
   saveRoads: 1
   saveHDRoads: 1
-  player: {fileID: 0}
   scalingFactor: 2
   perlinNoiseOctaves: 5
   perlinNoiseExponent: 4
@@ -387,9 +386,11 @@ MonoBehaviour:
   modelsLength: 5
   highwayModelWidth: 7
   bywayModelWidth: 4
-  officeBuildingMaxLot: {x: 50, y: 50}
-  simpleBuildingMaxLot: {x: 20, y: 15}
-  popDensityModelThreshold: 0.25
+  buildingLotSizes:
+  - {x: 50, y: 50}
+  - {x: 20, y: 15}
+  popDensityModelTresholds:
+  - 0.25
   buildingSpacing: 1
   modelSelectionHighwayAdvantage: 0.5
   modelSelectionMaxIncreasal: 1.2
