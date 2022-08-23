@@ -24,9 +24,11 @@ public class RoadMapGenerator : ScriptableObject
     private Crossroad cityCentre;
     private int cityRadius;
     private int roadLength;
+    private float highwayPopDensityLimit;
+    private float bywayPopDensityLimit;
     private float roadLengthVariability;
 
-    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int roadLength, float roadLengthVariability)
+    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int roadLength, float roadLengthVariability, float highwayPopDensityLimit, float bywayPopDensityLimit)
     {
         RoadMapGenerator instance = CreateInstance<RoadMapGenerator>();
 
@@ -42,6 +44,8 @@ public class RoadMapGenerator : ScriptableObject
         instance.bywayThickness = bywayThickness;
         instance.roadLength = roadLength;
         instance.roadLengthVariability = roadLengthVariability;
+        instance.highwayPopDensityLimit = highwayPopDensityLimit;
+        instance.bywayPopDensityLimit = bywayPopDensityLimit;
 
         instance.graph = new UndirectedGraph<Crossroad, Road>();
 
@@ -620,7 +624,7 @@ public class RoadMapGenerator : ScriptableObject
             return false;
         if (this.heightmap[Mathf.RoundToInt(end.y), Mathf.RoundToInt(end.x)] == 0)
             return false;
-        if (this.populationDensity[Mathf.RoundToInt(end.y), Mathf.RoundToInt(end.x)] <= (highway? 0.1f : 0.01f))
+        if (this.populationDensity[Mathf.RoundToInt(end.y), Mathf.RoundToInt(end.x)] <= (highway? highwayPopDensityLimit : bywayPopDensityLimit))
             return false;
         if (start == end)
             return false;

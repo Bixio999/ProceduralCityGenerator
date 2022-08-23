@@ -12,6 +12,7 @@ public class ProceduralCityGenerator : MonoBehaviour
     public bool savePopulationDensity = false;
     public bool saveRoads = false;
     public bool saveHDRoads = false;
+    public bool showPopDensityTexture = false;
 
 
 
@@ -50,6 +51,8 @@ public class ProceduralCityGenerator : MonoBehaviour
     [Range(0,1)]    public float probabilityToBranchHighway;
     public int roadLength;
     [Range(0, 1)] public float roadLengthVariability;
+    [Range(0, 1)] public float highwayPopDensityLimit = 0.25f;
+    [Range(0, 1)] public float bywayPopDensityLimit = 0.1f;
     public int highwayThickness;
     public int bywayThickness;
     public GameObject highway;
@@ -119,7 +122,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
         td.SetHeights(0,0, map);
 
-        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, roadLengthVariability);
+        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, roadLengthVariability, highwayPopDensityLimit, bywayPopDensityLimit);
      
         RoadMapRule r;
 
@@ -180,7 +183,7 @@ public class ProceduralCityGenerator : MonoBehaviour
                     alphaMap[i, j, 3] = 1;
                     // Debug.LogFormat("drawing street at i = {0}, j = {1}", scaled_i, scaled_j);
                 }
-                else if (populationMap[scaled_i, scaled_j] > 0)
+                else if (populationMap[scaled_i, scaled_j] > 0 && showPopDensityTexture)
                 {
                     float value = populationMap[scaled_i, scaled_j];
 
@@ -345,7 +348,7 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     Debug.DrawRay(P, upRoad, Color.green, Mathf.Infinity);
                     float maxStreetAngle = Vector3.SignedAngle(sideOffset.normalized, (center - P).normalized, upRoad) + obstacleCollisionAngleTolerance;
-                    print(maxStreetAngle);
+                    //print(maxStreetAngle);
 
                     Vector3 cumulativeHit = Vector3.zero;
                     foreach(Collider hit in hits)
