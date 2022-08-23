@@ -76,10 +76,6 @@ public class ProceduralCityGenerator : MonoBehaviour
 
     public Vector2Int[] buildingLotSizes;
     [Range(0, 1)] public float[] popDensityModelTresholds;
-
-    //public Vector2Int officeBuildingMaxLot;
-    //public Vector2Int simpleBuildingMaxLot;
-    //[Range(0, 1)] public float popDensityModelThreshold = .1f;
     public int buildingSpacing = 5;
     [Range(0, 1)] public float modelSelectionHighwayAdvantage = .5f;
     [Range(.5f, 2)] public float modelSelectionMaxIncreasal = 1.2f;
@@ -284,9 +280,9 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     float popValue = populationMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)];
 
-                    // Get the right model type 
-                    Vector2 buildingLotSize, lotSizeForGeneration;
-                    string model;
+                    // Get the building model type 
+                    Vector2 buildingLotSize = Vector2.zero, lotSizeForGeneration = Vector2.zero;
+                    string model = "";
                     if (road.highway)
                         popValue *= Random.Range(modelSelectionHighwayAdvantage, modelSelectionMaxIncreasal);
                     else
@@ -301,99 +297,107 @@ public class ProceduralCityGenerator : MonoBehaviour
                             break;
                         maxValue = minValue;
                     }
-                    lotSizeForGeneration = buildingLotSizes[i];
-                    buildingLotSize = lotSizeForGeneration * modelsScalingFactor;
-                    model = ProceduralBuildingGenerator.Instance.ruleSets[i].name;
 
-                    // check if the current building is out of boundaries
-                    if (dist + buildingLotSize.x > direction.magnitude)
-                        break;
-
-                    // Update current distance for the next building
-                    dist += buildingLotSize.x + buildingSpacing;
-
-                    // check if lot is on water
-                    Vector3[] moveP = { Vector3.zero, sideOffset.normalized * buildingLotSize.y, direction.normalized * buildingLotSize.x, sideOffset.normalized * -buildingLotSize.y };
-                    Vector3 t = P;
-                    bool invalidPosition = false;
-                    foreach (Vector3 m in moveP)
-                    {
-                        t += m;
-                        temp = t - Terrain.activeTerrain.GetPosition();
-                        temp /= coordsScaling;
-                        P_2D = new Vector2(temp.x, temp.z);
-
-                        if (heightMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)] == 0)
-                            invalidPosition = true;
-                    }
-                    if (invalidPosition)
-                        continue;
-
-                    // Compute the center of the building
-                    Vector3 center = P;
-                    center += rotation * Vector3.forward * buildingLotSize.y / 2;
-                    center += rotation * Vector3.right * buildingLotSize.x / 2;
-
+                    // Sync physics for collision tests
                     Physics.SyncTransforms();
 
-                    // Check for road or building collision
-                    Collider[] hits = Physics.OverlapBox(center,
-                        Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y) / 2f,
-                        rotation,
-                        LayerMask.GetMask("Obstacles"));
-
-                    DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
-
-                    invalidPosition = false;
-
-                    Debug.DrawRay(P, upRoad, Color.green, Mathf.Infinity);
-                    float maxStreetAngle = Vector3.SignedAngle(sideOffset.normalized, (center - P).normalized, upRoad) + obstacleCollisionAngleTolerance;
-                    //print(maxStreetAngle);
-
-                    Vector3 cumulativeHit = Vector3.zero;
-                    foreach(Collider hit in hits)
+                    // Try building positioning and retry until valid
+                    //bool invalidPosition = false, earlyStop = false;
+                    for(; i < buildingLotSizes.Length; i++)
                     {
-                        t = center - hit.ClosestPointOnBounds(center);
-                        cumulativeHit += t;
+                        lotSizeForGeneration = buildingLotSizes[i];
+                        buildingLotSize = lotSizeForGeneration * modelsScalingFactor;
+                        model = ProceduralBuildingGenerator.Instance.ruleSets[i].name;
 
-                        if (hit.gameObject.tag == "Building" || Vector3.Angle(sideOffset.normalized, t.normalized) > maxStreetAngle)
+                        // check if the current building is out of boundaries
+                        if (dist + buildingLotSize.x > direction.magnitude)
                         {
-                            Debug.DrawRay(center, -t, Color.red, Mathf.Infinity);
-                            invalidPosition = true;
+                            continue;
+                            //earlyStop = true;
+                            //break;
                         }
-                        else
-                            Debug.DrawRay(center, -t, Color.cyan, Mathf.Infinity);
+
+                        // check if lot is on water
+                        Vector3[] moveP = { Vector3.zero, sideOffset.normalized * buildingLotSize.y, direction.normalized * buildingLotSize.x, sideOffset.normalized * -buildingLotSize.y };
+                        Vector3 t = P;
+                        bool invalidPosition = false;
+                        foreach (Vector3 m in moveP)
+                        {
+                            t += m;
+                            temp = t - Terrain.activeTerrain.GetPosition();
+                            temp /= coordsScaling;
+                            P_2D = new Vector2(temp.x, temp.z);
+
+                            if (heightMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)] == 0)
+                            {
+                                invalidPosition = true;
+                                break;
+                            }
+                        }
+                        if (invalidPosition)
+                            continue;
+
+                        // Compute the center of the building
+                        Vector3 center = P;
+                        center += rotation * Vector3.forward * buildingLotSize.y / 2;
+                        center += rotation * Vector3.right * buildingLotSize.x / 2;
+
+
+                        // Check for road or building collision
+                        Collider[] hits = Physics.OverlapBox(center,
+                            Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y) / 2f,
+                            rotation,
+                            LayerMask.GetMask("Obstacles"));
+
+                        DrawBox(center, rotation, Vector3.one * (buildingLotSize.x > buildingLotSize.y ? buildingLotSize.x : buildingLotSize.y), Color.red);
+
+
+                        Debug.DrawRay(P, upRoad, Color.green, Mathf.Infinity);
+                        float maxStreetAngle = Vector3.SignedAngle(sideOffset.normalized, (center - P).normalized, upRoad) + obstacleCollisionAngleTolerance;
+                        //print(maxStreetAngle);
+
+                        Vector3 cumulativeHit = Vector3.zero;
+                        invalidPosition = false;
+                        foreach (Collider hit in hits)
+                        {
+                            t = center - hit.ClosestPointOnBounds(center);
+                            cumulativeHit += t;
+
+                            if (hit.gameObject.CompareTag("Building") || Vector3.Angle(sideOffset.normalized, t.normalized) > maxStreetAngle)
+                            {
+                                Debug.DrawRay(center, -t, Color.red, Mathf.Infinity);
+                                invalidPosition = true;
+                                break;
+                            }
+                            else
+                                Debug.DrawRay(center, -t, Color.cyan, Mathf.Infinity);
+                        }
+                        if (invalidPosition)
+                            continue;
+
+
+                        //cumulativeHit /= hits.Length;
+                        ////Debug.DrawLine(center, center + cumulativeHit, Color.cyan, Mathf.Infinity);
+
+                        //float angle = -Vector3.SignedAngle(direction.normalized, cumulativeHit.normalized, rotation * Vector3.up);
+                        //Vector3 xDir = direction.normalized * cumulativeHit.magnitude * Mathf.Cos(angle);
+                        //Vector3 yDir = sideOffset.normalized * cumulativeHit.magnitude * Mathf.Sin(angle);
+                        //Vector3 yOffset = (buildingLotSize.y / 2f - yDir.magnitude) * sideOffset.normalized;
+
+                        //Debug.DrawRay(center, xDir, Color.blue, Mathf.Infinity);
+                        //Debug.DrawRay(center, yDir, Color.magenta, Mathf.Infinity);
+                        //Debug.DrawRay(center, yOffset, Color.green, Mathf.Infinity);
+
+
+                        break;
                     }
 
-                    if (invalidPosition)
+                    // Update current distance for the next building;
+                    // if position is invalid, skip lot
+                    dist += buildingLotSize.x + buildingSpacing;
+
+                    if (i >= buildingLotSizes.Length)
                         continue;
-
-                    cumulativeHit /= hits.Length;
-                    //Debug.DrawLine(center, center + cumulativeHit, Color.cyan, Mathf.Infinity);
-
-                    float angle = -Vector3.SignedAngle(direction.normalized, cumulativeHit.normalized, rotation * Vector3.up);
-                    Vector3 xDir = direction.normalized * cumulativeHit.magnitude * Mathf.Cos(angle);
-                    Vector3 yDir = sideOffset.normalized * cumulativeHit.magnitude * Mathf.Sin(angle);
-                    Vector3 yOffset = (buildingLotSize.y / 2f - yDir.magnitude) * sideOffset.normalized;
-
-                    Debug.DrawRay(center, xDir, Color.blue, Mathf.Infinity);
-                    Debug.DrawRay(center, yDir, Color.magenta, Mathf.Infinity);
-                    Debug.DrawRay(center, yOffset, Color.green, Mathf.Infinity);
-
-
-
-
-                    // Spawn the debug cube
-                    //GameObject obj = Instantiate(buildingLotDebugModel);
-                    //temp = new(buildingLotSize.x, 0, buildingLotSize.y);
-                    //if (popValue > popDensityThreshold)
-                    //    temp.y = 100 * Random.Range(.5f, 1) * modelsScalingFactor;
-                    //else
-                    //    temp.y = 10 * Random.Range(.7f, 1) * modelsScalingFactor ;
-                    //obj.transform.localScale = temp;
-
-
-
 
                     // Generate building
                     List<GameObject> modelCache;
