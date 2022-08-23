@@ -93,7 +93,7 @@ public class InputMapGenerator
 
     // POPULATION DENSITY MAP GENERATION
 
-    public static (float [,] populationMap, Vector2 cityCentre, float maxPopDensityValue) createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale, float cityRadius, float heightTolerance, float PNScaling, int PNOctaves, float perlinNoiseExponent)
+    public static (float [,] populationMap, Vector2 cityCentre) createPopulationDensityMap(float [,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold, float mapBoundaryScale, float cityRadius, float heightTolerance, float PNScaling, int PNOctaves, float perlinNoiseExponent)
     {
         int cityCentreX, cityCentreY;
 
@@ -122,8 +122,6 @@ public class InputMapGenerator
         {
             for(int j = 0; j < w; j++)
             {
-                value = 0f;
-
                 xCoord = perlinNoiseOrigin.x + (float) j / w * PNScaling;
                 yCoord = perlinNoiseOrigin.y + (float) i / h * PNScaling;
 
@@ -157,9 +155,18 @@ public class InputMapGenerator
                     if (minValue > value) minValue = value;
                 }                    
             }
-        } 
+        }
 
-        return (populationMap, new Vector2(cityCentreX, cityCentreY), maxValue);
+        for(int i = 0; i < h; i++)
+        {
+            for(int j = 0; j < w; j++)
+            {
+                value = populationMap[i, j];
+                populationMap[i, j] = (value - minValue) / (maxValue - minValue);
+            }
+        }
+
+        return (populationMap, new Vector2(cityCentreX, cityCentreY));
     }
 
     private static bool isCityCentreValid(int centreX, int centreY, float[,] heightmap, int w, int h, float slopeThreshold, int originRadius, float waterThreshold)
