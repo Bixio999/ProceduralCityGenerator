@@ -77,7 +77,7 @@ public class InputMapGenerator
                 value = map[i,j];
 
                 // value = (value - minValue) / (maxValue - minValue);
-                value = value - minValue;
+                value -= minValue;
 
                 value = value > waterThreshold ? value : waterThreshold; 
                 value -= waterThreshold;

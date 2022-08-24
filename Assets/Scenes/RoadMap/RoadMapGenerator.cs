@@ -26,9 +26,8 @@ public class RoadMapGenerator : ScriptableObject
     private int roadLength;
     private float highwayPopDensityLimit;
     private float bywayPopDensityLimit;
-    private float roadLengthVariability;
 
-    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int roadLength, float roadLengthVariability, float highwayPopDensityLimit, float bywayPopDensityLimit)
+    public static RoadMapGenerator CreateInstance(float[,] heightmap, float[,] populationDensity, Vector2 cityCentre, int cityRadius, float waterPruningFactor, int maximalAngleToFix, float neighborhoodFactor, int defaultDelay, float probabilityToBranchHighway, int highwayThickness, int bywayThickness, int roadLength, float highwayPopDensityLimit, float bywayPopDensityLimit)
     {
         RoadMapGenerator instance = CreateInstance<RoadMapGenerator>();
 
@@ -43,7 +42,6 @@ public class RoadMapGenerator : ScriptableObject
         instance.highwayThickness = highwayThickness;
         instance.bywayThickness = bywayThickness;
         instance.roadLength = roadLength;
-        instance.roadLengthVariability = roadLengthVariability;
         instance.highwayPopDensityLimit = highwayPopDensityLimit;
         instance.bywayPopDensityLimit = bywayPopDensityLimit;
 

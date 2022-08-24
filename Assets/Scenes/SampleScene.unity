@@ -356,6 +356,7 @@ MonoBehaviour:
   saveRoads: 1
   saveHDRoads: 1
   showPopDensityTexture: 0
+  showDebugRoadmapTexture: 0
   scalingFactor: 2
   perlinNoiseOctaves: 5
   perlinNoiseExponent: 4
@@ -371,15 +372,14 @@ MonoBehaviour:
   popDensityPNScaling: 5
   iterationLimit: 70
   rule: 0
+  roadLength: 30
   waterPruningFactor: 0.6
   maximalAngleToFix: 20
-  neighborhoodFactor: 0.5
-  defaultDelay: 5
-  probabilityToBranchHighway: 0.11
-  roadLength: 30
-  roadLengthVariability: 0
   highwayPopDensityLimit: 0.25
   bywayPopDensityLimit: 0.1
+  probabilityToBranchHighway: 0.11
+  neighborhoodFactor: 0.5
+  defaultDelay: 5
   highwayThickness: 3
   bywayThickness: 1
   highway: {fileID: 110814, guid: ea8ec36c7f9b40f4faa40bf80afec5a3, type: 3}
@@ -387,8 +387,6 @@ MonoBehaviour:
   crossroad: {fileID: 5283112541970361925, guid: 717c6244f17d24ec88f98f96f4f96df3, type: 3}
   modelsScalingFactor: 0.2
   modelsLength: 5
-  highwayModelWidth: 7
-  bywayModelWidth: 4
   buildingLotSizes:
   - {x: 50, y: 50}
   - {x: 20, y: 15}
@@ -399,7 +397,6 @@ MonoBehaviour:
   modelSelectionMaxIncreasal: 1.2
   buildingCacheSize: 25
   obstacleCollisionAngleTolerance: 20
-  buildingLotDebugModel: {fileID: 807971037119972668, guid: 56aafaa3e4d2b470f820d77a5d85bb52, type: 3}
 --- !u!4 &1696565347
 Transform:
   m_ObjectHideFlags: 0
