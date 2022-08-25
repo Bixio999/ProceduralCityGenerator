@@ -78,10 +78,45 @@ public class Road : IQuadTreeObject, IEdge<Crossroad> {
 public class RoadNetwork {
     List<Crossroad> crossroadList = new List<Crossroad>();
     List<Road> roadList = new List<Road>();
-    Crossroad currentCrossroad;
+
+    public IEnumerable<Road> Roads
+    {
+        get
+        {
+            return this.roadList;
+        }
+    }
+
+    public IEnumerable<Crossroad> Crossroads
+    {
+        get
+        {
+            return this.crossroadList;
+        }
+    }
 
     public void AddRoad(Road r)
     {
         this.roadList.Add(r);
+    }
+
+    public void AddCrossroad(Crossroad c)
+    {
+        this.crossroadList.Add(c);
+    }
+
+    public bool RemoveRoad(Road r)
+    {
+        return this.roadList.Remove(r);
+    }
+
+    public bool RemoveCrossroad(Crossroad c)
+    {
+        return this.crossroadList.Remove(c);
+    }
+
+    public bool ContainsCrossroad(Crossroad c)
+    {
+        return this.crossroadList.Contains(c);
     }
 }

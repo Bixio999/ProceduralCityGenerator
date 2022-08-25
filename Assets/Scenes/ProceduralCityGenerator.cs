@@ -122,7 +122,7 @@ public class ProceduralCityGenerator : MonoBehaviour
         (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         // INSTANTIATE THE ROADMAP GENERATOR
-        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(map, populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, highwayPopDensityLimit, bywayPopDensityLimit);
+        RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(in map, in populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, highwayPopDensityLimit, bywayPopDensityLimit);
 
         // GET THE GLOBAL GOAL RULE TO APPLY     
         RoadMapRule r;
@@ -144,7 +144,7 @@ public class ProceduralCityGenerator : MonoBehaviour
         roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle, iterationLimit);
 
         // SPAWN THE ROADMAP RENDERING 
-        GameObject RMrender = roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength, td.size.x / x);
+        GameObject RMrender = roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength);
         RMrender.transform.position = Vector3.up * 0.5f;
 
         // DEFINE ADN STORE THE DEBUG ROADMAP TEXTURE 
@@ -168,27 +168,29 @@ public class ProceduralCityGenerator : MonoBehaviour
         {
             for (int j = 0; j < td.alphamapWidth; j++)
             {
+                // Compute scaled coords due to different matrix resolution between alphamap and heightmap
                 scaled_i =  Mathf.RoundToInt((float)i / mapsFactor);
                 scaled_j =  Mathf.RoundToInt((float)j / mapsFactor);
 
                 if (map[scaled_i, scaled_j] == 0)
                 {
-                    alphaMap[i,j,1] = 1;
+                    alphaMap[i,j,1] = 1; // Paint water texture
                 }
                 else if (!roadMap.GetPixel(scaled_j, scaled_i).Equals(Color.clear) && showDebugRoadmapTexture)
                 {
-                    alphaMap[i, j, 3] = 1;
+                    alphaMap[i, j, 3] = 1; // Paint roadmap texture
                 }
                 else if (populationMap[scaled_i, scaled_j] > 0 && showPopDensityTexture)
                 {
                     float value = populationMap[scaled_i, scaled_j];
 
+                    // Paint population density texture
                     alphaMap[i,j,0] = 1 - value;
                     alphaMap[i,j,2] = value;
                 }
                 else
                 {
-                    alphaMap[i,j,0] = 1;
+                    alphaMap[i,j,0] = 1; // Paint terrain texture
                 }
             }
         }
