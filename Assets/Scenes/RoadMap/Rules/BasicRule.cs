@@ -38,7 +38,7 @@ public class BasicRule : RoadMapRule
         return maxDirection;
     }
 
-    private bool isValidPosition(int x, int y, int w, int h)
+    public static bool isValidPosition(int x, int y, int w, int h)
     {
         if (x < 0 || x >= w)
             return false;

@@ -141,7 +141,7 @@ public class ProceduralCityGenerator : MonoBehaviour
         }
 
         // GENERATE THE ROADMAP WITH A RANDOM INITIAL ROAD DIRECTION
-        roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle, iterationLimit);
+        roadMapGenerator.GenerateRoadMap(r, Random.insideUnitCircle.normalized, iterationLimit);
 
         // SPAWN THE ROADMAP RENDERING 
         GameObject RMrender = roadMapGenerator.Render(highway, byway, crossroad, modelsScalingFactor, modelsLength);
@@ -304,8 +304,13 @@ public class ProceduralCityGenerator : MonoBehaviour
 
                     // Compute the 2D coords to access population density matrix
                     Vector2 P_2D = ConvertPositionTo2D(P);
+                    P_2D.y = Mathf.Round(P_2D.y);
+                    P_2D.x = Mathf.Round(P_2D.x);
 
-                    float popValue = populationMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)];
+                    if (!BasicRule.isValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)))
+                        continue;
+
+                    float popValue = populationMap[(int)(P_2D.y), ((int)P_2D.x)];
 
                     // GET THE CORRECT BUILDING MODEL TYPE
                     Vector2 buildingLotSize = Vector2.zero, lotSizeForGeneration = Vector2.zero;
@@ -349,8 +354,11 @@ public class ProceduralCityGenerator : MonoBehaviour
                         {
                             t += m;
                             P_2D = ConvertPositionTo2D(t);
+                            P_2D.y = Mathf.Round(P_2D.y);
+                            P_2D.x = Mathf.Round(P_2D.x);
 
-                            if (heightMap[Mathf.RoundToInt(P_2D.y), Mathf.RoundToInt(P_2D.x)] == 0)
+                            if (BasicRule.isValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)) &&
+                                heightMap[((int)P_2D.y), ((int)P_2D.x)] == 0)
                             {
                                 invalidPosition = true;
                                 break;

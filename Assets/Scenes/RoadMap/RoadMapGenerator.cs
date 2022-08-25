@@ -506,6 +506,9 @@ public class RoadMapGenerator : ScriptableObject
      */
     private bool IsPositionValid(Vector2 start, Vector2 end, bool highway)
     {
+        end.x = Mathf.Round(end.x);
+        end.y = Mathf.Round(end.y);
+
         // Map boundaries
         if (end.x < 0 || end.x >= this.heightmap.GetLength(0))
             return false;
