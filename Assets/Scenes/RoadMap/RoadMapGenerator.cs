@@ -10,7 +10,7 @@ public class RoadMapGenerator : ScriptableObject
     // AUXILIARY STRUCTURES
     private QuadTree<IQuadTreeObject> quadTree;
     private RoadNetwork graph; 
-    private Queue<RMModule> moduleQueue;
+    private Queue<IRMModule> moduleQueue;
 
     // GENERATOR'S PARAMETERS
     private float waterPruningFactor;
@@ -57,7 +57,7 @@ public class RoadMapGenerator : ScriptableObject
         instance.cityRadius = cityRadius;
 
         instance.quadTree = new QuadTree<IQuadTreeObject>(4, new Rect(cityCentre.x - cityRadius, cityCentre.y - cityRadius, 2 * cityRadius, 2 * cityRadius));
-        instance.moduleQueue = new Queue<RMModule>();
+        instance.moduleQueue = new Queue<IRMModule>();
 
         return instance;
     }
@@ -68,7 +68,7 @@ public class RoadMapGenerator : ScriptableObject
      * Start the roadmap generation. Assign as global goal rule, the direction of the first road, 
      * and execute the iterations until the limit is reached. 
      */
-    public void GenerateRoadMap(RoadMapRule rule, Vector2 initialDirection, int iterationLimit)
+    public void GenerateRoadMap(IRoadMapRule rule, Vector2 initialDirection, int iterationLimit)
     {
         // Define the first module as a new road from the city centre and the given
         // initial direction
@@ -86,7 +86,7 @@ public class RoadMapGenerator : ScriptableObject
         // Enqueue the module and start the generation
         this.moduleQueue.Enqueue(r);
 
-        RMModule m;
+        IRMModule m;
         int iteration;
         for (iteration = 0; this.moduleQueue.Count > 0; iteration++)
         {
@@ -154,7 +154,7 @@ public class RoadMapGenerator : ScriptableObject
             case QueryStates.SUCCEED:
                 // Compute the global goals for a new road, and get its data with
                 // the side branches
-                (int[] pDel, RoadMapRule[] pRuleAttr, RoadAttributes[] pRoadAttr) = this.GlobalGoals(m.ruleAttr, m.roadAttr, m.startPoint);
+                (int[] pDel, IRoadMapRule[] pRuleAttr, RoadAttributes[] pRoadAttr) = this.GlobalGoals(m.ruleAttr, m.roadAttr, m.startPoint);
 
                 // Create the new road module 
                 RoadModule r = new RoadModule();
@@ -213,10 +213,10 @@ public class RoadMapGenerator : ScriptableObject
      * position, and weighted by probabilityToBranchHighway 
      * parameter. 
      */
-    private (int[], RoadMapRule[], RoadAttributes[]) GlobalGoals(RoadMapRule ruleAttr, RoadAttributes roadAttr, Crossroad start)
+    private (int[], IRoadMapRule[], RoadAttributes[]) GlobalGoals(IRoadMapRule ruleAttr, RoadAttributes roadAttr, Crossroad start)
     {
         int[] pDel = new int[3];
-        RoadMapRule[] pRuleAttr = new RoadMapRule[3];
+        IRoadMapRule[] pRuleAttr = new IRoadMapRule[3];
         RoadAttributes[] pRoadAttr = new RoadAttributes[3];
 
         Vector3 t;
@@ -225,7 +225,7 @@ public class RoadMapGenerator : ScriptableObject
 
         pDel[0] = 0;
         pRuleAttr[0] = ruleAttr;
-        pRoadAttr[0] = roadAttr.highway? ruleAttr.generateHighway(roadAttr, start, in populationDensity) : ruleAttr.genereateByway(roadAttr, start, in populationDensity);
+        pRoadAttr[0] = roadAttr.highway? ruleAttr.GenerateHighway(roadAttr, start, in populationDensity) : ruleAttr.GenereateByway(roadAttr, start, in populationDensity);
 
         // branch 1 - left
 

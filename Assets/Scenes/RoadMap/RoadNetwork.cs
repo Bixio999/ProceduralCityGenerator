@@ -2,6 +2,10 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /*
+ * Each crossroad is defined by a location and a list of roads, which stores 
+ * a reference to each road containing it.
+ * 
+ * This class implements an interface that allows to be stored into quadtrees.
  */
 public class Crossroad : IQuadTreeObject{
     List<Road> roadList;
@@ -39,6 +43,16 @@ public class Crossroad : IQuadTreeObject{
     }
 }
 
+/*
+ * Each road is defined by the two crossroad representing the start and the
+ * end of it. 
+ * 
+ * The position of a road is given by the midpoint between its crossroads.
+ * 
+ * The highway flag is used to define the road type.
+ * 
+ * This class implements an interface that allows to be stored into quadtrees.
+ */
 public class Road : IQuadTreeObject{
     public Crossroad start;
     public Crossroad end;
@@ -64,6 +78,10 @@ public class Road : IQuadTreeObject{
    }
 }
 
+/*
+ * This class represents the road map status, by storing the current crossroads
+ * and roads created.
+ */
 public class RoadNetwork {
     List<Crossroad> crossroadList = new List<Crossroad>();
     List<Road> roadList = new List<Road>();

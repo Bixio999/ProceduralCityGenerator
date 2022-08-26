@@ -125,7 +125,7 @@ public class ProceduralCityGenerator : MonoBehaviour
         RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(in map, in populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, highwayPopDensityLimit, bywayPopDensityLimit);
 
         // GET THE GLOBAL GOAL RULE TO APPLY     
-        RoadMapRule r;
+        IRoadMapRule r;
 
         switch (this.rule)
         {

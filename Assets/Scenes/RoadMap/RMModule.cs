@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/*
+ * Defines the current status of a road or branch module.
+ */
 public enum QueryStates
 {
     UNASSIGNED = 0,
@@ -11,25 +14,27 @@ public enum QueryStates
 // Interaction query parameters
 public struct RoadAttributes
 {
-    public int length;
-    public Vector2 direction;
-    public bool highway;
+    public int length; // Default road length
+    public Vector2 direction; // Direction of the current road
+    public bool highway; // Road type
 }
 
-interface RMModule{}
+/* ----- MODULES DEFINITION ----- */
 
-class BranchModule : RMModule
+interface IRMModule {}
+
+class BranchModule : IRMModule
 {
-    public int del;
-    public RoadAttributes roadAttr;
-    public RoadMapRule ruleAttr;
-    public Crossroad startPoint;
+    public int del; // Current delay value
+    public RoadAttributes roadAttr; // road parameters
+    public IRoadMapRule ruleAttr; // Global goals rule
+    public Crossroad startPoint; // start crossroad
 }
 
 class RoadModule : BranchModule
 {
-    public QueryStates state;
-    public Crossroad endPoint;
+    public QueryStates state; // status of road generation
+    public Crossroad endPoint; // end crossroad
 
     public RoadModule()
     {
