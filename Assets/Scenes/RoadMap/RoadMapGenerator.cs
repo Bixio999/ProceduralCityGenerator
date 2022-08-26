@@ -112,6 +112,10 @@ public class RoadMapGenerator : ScriptableObject
 
         Debug.LogFormat("iterations: {0}", iteration);
 
+        this.quadTree.Clear();
+        this.moduleQueue.Clear();
+            
+
     }
 
     /*

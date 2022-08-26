@@ -24,7 +24,7 @@ public class BasicRule : RoadMapRule
             {
                 scanPosition = position + scanDirection * j;
 
-                if (!isValidPosition(Mathf.RoundToInt(scanPosition.y), Mathf.RoundToInt(scanPosition.x), populationDensity.GetLength(0), populationDensity.GetLength(1)))
+                if (!InputMapGenerator.IsValidPosition(Mathf.RoundToInt(scanPosition.y), Mathf.RoundToInt(scanPosition.x), populationDensity.GetLength(0), populationDensity.GetLength(1)))
                     break;
                 weight += populationDensity[Mathf.RoundToInt(scanPosition.y), Mathf.RoundToInt(scanPosition.x)] * (1 - ((float)j / length));
             }
@@ -36,15 +36,6 @@ public class BasicRule : RoadMapRule
             }
         }
         return maxDirection;
-    }
-
-    public static bool isValidPosition(int x, int y, int w, int h)
-    {
-        if (x < 0 || x >= w)
-            return false;
-        if (y < 0 || y >= h)
-            return false;
-        return true;
     }
 
     public RoadAttributes generateHighway(RoadAttributes roadAttr, Crossroad start, in float[,] populationDensity)

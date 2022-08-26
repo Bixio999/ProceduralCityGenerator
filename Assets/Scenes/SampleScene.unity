@@ -350,12 +350,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrain: {fileID: 1969773139}
-  RandomSeed: 19043120
+  RandomSeed: 0
   instantQuit: 0
   savePopulationDensity: 0
   saveRoads: 1
   saveHDRoads: 1
-  showPopDensityTexture: 0
+  showPopDensityTexture: 1
   showDebugRoadmapTexture: 0
   scalingFactor: 2
   perlinNoiseOctaves: 5

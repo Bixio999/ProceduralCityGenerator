@@ -115,11 +115,11 @@ public class ProceduralCityGenerator : MonoBehaviour
         float [,,] alphaMap = new float [td.alphamapWidth, td.alphamapHeight, td.alphamapLayers];
 
         // GENERATE THE TERRAIN HEIGHTMAP
-        float [,] map = InputMapGenerator.generatePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
+        float [,] map = InputMapGenerator.GeneratePerlinNoiseMap(x,y, scalingFactor, perlinNoiseOctaves, perlinNoiseExponent, terrainWaterThreshold);
         td.SetHeights(0,0, map);
 
         // GENERATE THE POPULATION DENSITY MAP
-        (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.createPopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
+        (float[,] populationMap, Vector2 cityCentre) = InputMapGenerator.CreatePopulationDensityMap(map, x, y, slopeThreshold, neighborhoodRadius, popDensityWaterThreshold, mapBoundaryScale, cityRadius, popDensityHeightTolerance, popDensityPNScaling, popDensityPNOctaves, popDensityPNExponent);
 
         // INSTANTIATE THE ROADMAP GENERATOR
         RoadMapGenerator roadMapGenerator = RoadMapGenerator.CreateInstance(in map, in populationMap, cityCentre, cityRadius, waterPruningFactor, maximalAngleToFix, neighborhoodFactor, defaultDelay, probabilityToBranchHighway, highwayThickness, bywayThickness, roadLength, highwayPopDensityLimit, bywayPopDensityLimit);
@@ -158,6 +158,7 @@ public class ProceduralCityGenerator : MonoBehaviour
         // BUILDING GENERATION
 
         SpawnBuildings(roadMapGenerator.GetRoads(), td.size.x / x, in populationMap, in map);
+        ProceduralBuildingGenerator.Instance.Clear();
 
         // TERRAIN TEXTURE PAINTING
 
@@ -307,7 +308,7 @@ public class ProceduralCityGenerator : MonoBehaviour
                     P_2D.y = Mathf.Round(P_2D.y);
                     P_2D.x = Mathf.Round(P_2D.x);
 
-                    if (!BasicRule.isValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)))
+                    if (!InputMapGenerator.IsValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)))
                         continue;
 
                     float popValue = populationMap[(int)(P_2D.y), ((int)P_2D.x)];
@@ -357,7 +358,7 @@ public class ProceduralCityGenerator : MonoBehaviour
                             P_2D.y = Mathf.Round(P_2D.y);
                             P_2D.x = Mathf.Round(P_2D.x);
 
-                            if (BasicRule.isValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)) &&
+                            if (InputMapGenerator.IsValidPosition((int)P_2D.y, (int)P_2D.x, heightMap.GetLength(0), heightMap.GetLength(1)) &&
                                 heightMap[((int)P_2D.y), ((int)P_2D.x)] == 0)
                             {
                                 invalidPosition = true;
