@@ -34,7 +34,7 @@ public class ProceduralBuildingGenerator : MonoBehaviour
     [HideInInspector]public GameObject buildingFolder;
 
     // DEBUG PARAMETERS
-
+    [Header("--- USE ONLY IN CASE OF INDEPENDENT PROJECT ---")]
     public bool debug = false;
     public int RandomSeed = 0;
     public Material buildingMaterial;
