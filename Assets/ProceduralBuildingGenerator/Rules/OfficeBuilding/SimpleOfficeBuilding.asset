@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b5aac5d566ab4b848f1fe3f57d9ff02, type: 3}
+  m_Name: SimpleOfficeBuilding
+  m_EditorClassIdentifier: 
+  axiom: {fileID: 11400000, guid: 89864eef66a924b32b592d9c18ca0813, type: 2}
+  ruleSet:
+  - {fileID: 11400000, guid: 85d2609687e2b46178ee81c9df50c852, type: 2}
+  - {fileID: 11400000, guid: 2ccd98f2824dd4646987e908161badca, type: 2}
+  - {fileID: 11400000, guid: ce4bfa7738c4a4b96bdaedcf96df537a, type: 2}
+  name: SimpleOfficeBuilding

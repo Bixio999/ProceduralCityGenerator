@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc326233d30164165adc99b7d9e2effb, type: 3}
+  m_Name: subdivide1_r3
+  m_EditorClassIdentifier: 
+  axes: 010000
+  values:
+  - {fileID: 11400000, guid: 00350c8e9af5349a6b7d900053b4b9de, type: 2}
+  - {fileID: 11400000, guid: 643094dffd43c429bb09e118038eea4c, type: 2}
+  symbols:
+  - {fileID: 11400000, guid: ad4a71b9c2bf540b5bd4c5edae0f9f40, type: 2}
+  - {fileID: 11400000, guid: d3786f3a4338c43c28ef3021bad35ef0, type: 2}

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eab84754396d34bd48b7f784f37db5eb, type: 3}
+  m_Name: rule 3
+  m_EditorClassIdentifier: 
+  symbol: sidewing
+  conditions: []
+  actions:
+  - {fileID: 11400000, guid: 99dca126ce18144cab5d13c85ba0fb6e, type: 2}
+  - {fileID: 11400000, guid: 176636b6bb5384a6397be172b3d7aae5, type: 2}
+  - {fileID: 11400000, guid: 1b11ed588ae974068a8eb86ad4da3ce0, type: 2}

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eab84754396d34bd48b7f784f37db5eb, type: 3}
+  m_Name: rule 6
+  m_EditorClassIdentifier: 
+  symbol: groundfloor
+  conditions:
+  - {fileID: 11400000, guid: dd9d7a79ab9b14bd99803e4c7fab43db, type: 2}
+  actions:
+  - {fileID: 11400000, guid: eef2b1c0145aa4b56b06cd5b449bcd25, type: 2}

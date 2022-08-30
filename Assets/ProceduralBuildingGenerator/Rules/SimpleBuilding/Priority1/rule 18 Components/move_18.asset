@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37f70f1df609043f8aed8bb25bd70781, type: 3}
+  m_Name: move_18
+  m_EditorClassIdentifier: 
+  newPosition:
+  - {fileID: 11400000, guid: 54d458bdde5d24098aa0bddf7fa26dd1, type: 2}
+  - {fileID: 11400000, guid: aa288af38d10d473c97ae2facae42567, type: 2}
+  - {fileID: 11400000, guid: f91dd0c2e5d0e469d81f30e29d958383, type: 2}
