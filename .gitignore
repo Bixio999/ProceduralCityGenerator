@@ -512,7 +512,5 @@ crashlytics-build.properties
 
 # Custom
 
-Assets/*
-!Assets/Scenes
 SaveImages
-!Assets/ProceduralBuildingGenerator
+!SaveImages/.notempty
