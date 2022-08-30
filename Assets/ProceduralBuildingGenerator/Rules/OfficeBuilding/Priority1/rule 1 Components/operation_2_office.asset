@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b3ebc3aa5cb74a3eb28ee1cf5829603, type: 3}
+  m_Name: operation_2_office
+  m_EditorClassIdentifier: 
+  isRelative: 0
+  firstValue: {fileID: 11400000, guid: 88f881a3e9fb149dc937de37680ff399, type: 2}
+  operation: 2
+  secondValue: {fileID: 11400000, guid: 723489f0ee92b4e81ae6bee72379a79a, type: 2}

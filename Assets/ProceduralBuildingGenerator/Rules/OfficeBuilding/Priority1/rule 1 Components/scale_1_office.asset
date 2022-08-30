@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   newSize:
   - {fileID: 11400000, guid: 00350c8e9af5349a6b7d900053b4b9de, type: 2}
-  - {fileID: 11400000, guid: 88f881a3e9fb149dc937de37680ff399, type: 2}
+  - {fileID: 11400000, guid: 0e0b4c5783678462d87ea574de7cf368, type: 2}
   - {fileID: 11400000, guid: 00350c8e9af5349a6b7d900053b4b9de, type: 2}

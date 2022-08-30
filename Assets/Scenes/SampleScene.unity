@@ -355,7 +355,7 @@ MonoBehaviour:
   savePopulationDensity: 0
   saveRoads: 1
   saveHDRoads: 1
-  showPopDensityTexture: 1
+  showPopDensityTexture: 0
   showDebugRoadmapTexture: 0
   scalingFactor: 2
   perlinNoiseOctaves: 5
@@ -424,16 +424,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8178c47d862de456db829e2e777b0332, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  debug: 0
-  RandomSeed: 0
   shapes: []
   ruleSets:
   - {fileID: 11400000, guid: 87fb1a1e05d3341a48190dc72ac80fa5, type: 2}
   - {fileID: 11400000, guid: ebde5d4a2f03f46508e99d68843cf708, type: 2}
+  buildingFolder: {fileID: 0}
+  debug: 0
+  RandomSeed: 0
+  buildingMaterial: {fileID: 2100000, guid: a554cca67cefd490b9d12129a8eb0eac, type: 2}
   currentRuleSet: 
   maxIterations: 0
-  buildingFolder: {fileID: 0}
-  buildingMaterial: {fileID: 2100000, guid: a554cca67cefd490b9d12129a8eb0eac, type: 2}
 --- !u!1 &1969773139
 GameObject:
   m_ObjectHideFlags: 0
