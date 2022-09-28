@@ -235,7 +235,7 @@ It will generate buildings similar to those used for offices, with two possible 
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models needed, and some modifications to enhance uniqueness across generations, such as randomization of building height.
 
-![ruleset office building](./report-assets/ruleset office building.jpeg)
+![ruleset office building](./report-assets/ruleset-office-building.jpeg)
 
 | <img src="./report-assets/image-20220906152940976-2470984.jpeg" width = "200" /> | <img src="./report-assets/image-20220906153449205-2471290.png" width = "200" /> |
 | :----------------------------------------------------------: | :----------------------------------------------------------: |
@@ -248,7 +248,7 @@ Generate residential houses in three possible combinations (each with the same p
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models required, and slight modifications to enhance the uniqueness between generations, in this case given by the three possible aspects. 
 
-![ruleset simple building](./report-assets/ruleset simple building.jpeg)
+![ruleset simple building](./report-assets/ruleset-simple-building.jpeg)
 
 <figure align = "center">
 <img src="./report-assets/image-20220906165326650.jpeg" alt="image-20220906165326650" style="zoom:50%;" />
