@@ -1,7 +1,3 @@
----
-typora-copy-images-to: ./report-assets
----
-
 # Procedural City Generator in Unity
 
 ###### Implementation and discussion of Parish & Müller's approaches to procedural modeling of cities and buildings.
@@ -75,10 +71,13 @@ Unlike the road map generator, this system is not an Extended L-system as define
 This is the name of the system created by Parish and Müller that implements an Extended L-system for the generation of a city's road map and unique buildings. The main focus of their project was on the first part: the creation of a consistent and realistic road map with high extendability and control on the generation. 
 
 To achieve their goal, they designed an algorithm for global goals based on population density: as a basic rule, at least a city's highways should follow and cover the highly populated areas to give residents close access to the next highway. To execute this approach, when defining a new road and assigning global goal parameters, its direction is adjusted to face the highly populated area within a certain angle of rotation by scanning the population density map with a predetermined number of rays: the direction chosen is that of the ray with the highest weight, based on the density values scaled by the inverse distance from the origin of the ray. The weight calculation is given precisely by the following formula:
+
 $$
-w(v) = \sum_{i = 0}^{l} \left\{M(P) \cdot \left(1 - \frac i l \right) \ | \ P = A + v \cdot i \right\}
+w(v) = \sum_{i = 0}^{l} \left \\{ M(P) \cdot \left(1 - \frac i l \right) \ | \ P = A + v \cdot i \right \\}
 $$
+
 where $l$ is the road's length, $M$ is the population density map, $P$ is a point on the map, $A$ is the road's starting point and $v$ is the ray's direction.
+
 <figure align = "center">
 <img src="./report-assets/image-20220902182633404.png" alt="image-20220902182633404" style="zoom:50%;" />
 <figcaption><b>Fig.2 - High populated area strategy</b></figcaption>
@@ -169,9 +168,11 @@ The grammar used for this system works with a configuration of shapes, defined b
 The production process consists of evaluating the currently active shapes. Starting with the axiom shape, for each active shape a production rule is chosen that matches its symbol and satisfies the required conditions, successors are calculated as new active shapes, the current shape is marked as inactive, and the process is repeated until there are no more non-terminal active shapes.
 
 A production rule is defined by a unique identifier $id$, aka its name, the predecessor symbol, a set of logical conditions that the predecessor must satisfy, and the shape of the successor followed by its probability of being chosen. They are defined with the following notation:
+
 $$
 id :\  \quad \text{predecessor} : \text{condition} \leadsto \text{successor} : \text{probability}
 $$
+
 Similar to L-systems, CGA Shape introduces general rules for modifying shapes. There are two main categories, used to modify a shape or to divide it into other shapes with specific patterns: 
 
 * Scope rules are used to change the scope of a shape through translation, scaling or rotation; rules to *push* and *pop* scopes are also in this category.
@@ -183,10 +184,12 @@ Similar to L-systems, CGA Shape introduces general rules for modifying shapes. T
 The final model of a building consists of minor models for each terminal shape of the grammar, which create an instance of a geometric primitive (such as cube, square, cylinder, ...) and set it with the attributes of their scope. 
 
 To generalize rules and avoid constant numbers for each case, rule attributes can be defined as *relative*, so that they scale with the values of the current scope or fit with the given constant attributes. In the second case, a relative value is calculated from the *absolutes* (constants) using the following formula:
+
 $$
 \frac {r \cdot (S - \sum abs_i)}{\sum r_i}
 $$
- where $r$ are the relative values, $S$ is a value from scope, and $abs$ are the absolute values. 
+
+where $r$ are the relative values, $S$ is a value from scope, and $abs$ are the absolute values. 
 
 To introduce context-awareness in CGA Shape, the main feature discussed in this paper, the authors describe two queries that allow the creation of rule conditions based on the state of the environment: *Occlusion* and *Visible*. 
 
@@ -204,19 +207,19 @@ Analysing the features offered by CGA Shape, compared to the original approach i
 
 ##### CGA Shape
 
-A building model's grammar is described by ` RuleSet` class, which contains a reference to the axiom shape (` Shape` object) and a set of ` RuleSetPriority`, each containing the actual rules represented by ` Rule` class. This `RuleSetPriority`  intermediate class allows to group rules by priority, to create both an execution order and a hierarchy based on the level of details they create.
+A building model's grammar is described by `RuleSet` class, which contains a reference to the axiom shape (`Shape` object) and a set of `RuleSetPriority`, each containing the actual rules represented by `Rule` class. This `RuleSetPriority`  intermediate class allows to group rules by priority, to create both an execution order and a hierarchy based on the level of details they create.
 
-The Rule class is implemented consistenty to its formal definition discussed above, containing a symbol, a set of ` RuleCondition` objects describing its conditions, and a set of ` RuleAction` describing the events to create the successors.
+The Rule class is implemented consistenty to its formal definition discussed above, containing a symbol, a set of `RuleCondition` objects describing its conditions, and a set of `RuleAction` describing the events to create the successors.
 
 A RuleCondition is a logical expression composed by an operator and two operands: a `RuleQuery` and a value. When evaluated, the query is computed and its result compared to the condition value according to the operator. The available queries are Occlusion and Visible. 
 
-A RuleAction contains a probability and a set of ` RuleActionItem`, objects that groups the ` RuleFunction` objects, whose run the actual generation of the successors shapes. This intermediate class is introduced to both handle those actions that simply produce a new shape without additional operations, and to nest functions to create complex rules. Infact, a RuleFunction does not have a string symbol as output, but a reference to a RuleActionItem. When a Rule is executed, the action to *fire* is randomly chosen according to their probabilities.  
+A RuleAction contains a probability and a set of `RuleActionItem`, objects that groups the `RuleFunction` objects, whose run the actual generation of the successors shapes. This intermediate class is introduced to both handle those actions that simply produce a new shape without additional operations, and to nest functions to create complex rules. Infact, a RuleFunction does not have a string symbol as output, but a reference to a RuleActionItem. When a Rule is executed, the action to *fire* is randomly chosen according to their probabilities.  
 
-The RuleFunctions are the implementation of the previously discussed types of rule: the scope rules are represented by  ` MoveScope` (translation) , ` ScaleScope ` (scaling) and ` RotateScope` (rotation) classes, while the split rules by ` Component` , ` Repeat` and ` Subdivide` classes. 
+The RuleFunctions are the implementation of the previously discussed types of rule: the scope rules are represented by  `MoveScope` (translation) , `ScaleScope` (scaling) and `RotateScope` (rotation) classes, while the split rules by `Component` , `Repeat` and `Subdivide` classes. 
 
-In addiction, two more RuleFunctions are introduces: ` SpawnModel` and ` Roof`, respectively used to create the final building part model by a terminal shape, and to handle the roof shape creation based on the chosen type and properties. 
+In addiction, two more RuleFunctions are introduces: `SpawnModel` and `Roof`, respectively used to create the final building part model by a terminal shape, and to handle the roof shape creation based on the chosen type and properties. 
 
-Values are also represented through a family of classes with `Value` as the root, to introduce random values (` RandomValue`), operations (` OperationValue`) and numbers from the attributes of the current scope (` ScopeValue`) into the rules. All these elements contribute to the high flexibility of the rule creation system. In OperationValues, the two operands are actually Value objects, which allow operations to be nested. 
+Values are also represented through a family of classes with `Value` as the root, to introduce random values (`RandomValue`), operations (`OperationValue`) and numbers from the attributes of the current scope (`ScopeValue`) into the rules. All these elements contribute to the high flexibility of the rule creation system. In OperationValues, the two operands are actually Value objects, which allow operations to be nested. 
 
 ##### Examples of ruleset
 
@@ -231,6 +234,7 @@ Those values defined from constants follows the notation *example_constant*, to 
 It will generate buildings similar to those used for offices, with two possible sidewings. In the front facade of the ground floor there will be an entrance, while on the edges of the roof a small step will be generated. These models can of course be expanded to introduce new details into the buildings. 
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models needed, and some modifications to enhance uniqueness across generations, such as randomization of building height.
+
 $$
 \begin{align}
 & \text{PRIORITY 1} \\
@@ -276,8 +280,6 @@ $$
 \end{align}
 $$
 
-
-
 | <img src="./report-assets/image-20220906152940976-2470984.jpeg" width = "200" /> | <img src="./report-assets/image-20220906153449205-2471290.png" width = "200" /> |
 | :----------------------------------------------------------: | :----------------------------------------------------------: |
 
@@ -288,6 +290,7 @@ $$
 Generate residential houses in three possible combinations (each with the same probability to be chosen). 
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models required, and slight modifications to enhance the uniqueness between generations, in this case given by the three possible aspects. 
+
 $$
 \begin{align}
 & \text{PRIORITY 1} \\
@@ -358,9 +361,11 @@ Another additional feature of my implementation is the procedural generation not
 The implemented Perlin noise system combines the raw values from the `PerlinNoise` function of Unity's *Mathf* library with scaling factors, octaves (frequencies) and power calculations to adjust the values for the required task and reduce repetition cases. 
 
 After randomly calculating the origin point in Perlin noise texture to to start reading from, generate a value for each cell of the matrix with the following formula: 
+
 $$
-\frac{\sum_{k = 0}^{ \text{nOctaves}} \frac {1}{2 ^k} \cdot PN(2^k x, 2^k y) }{\sum_{k =0}^{\text{nOctaves}} \frac {1}{2 ^k} }
+\frac{\displaystyle \sum_{k = 0}^{ \text{nOctaves}} \frac {1}{2 ^k} \cdot PN(2^k x, 2^k y) }{\displaystyle\sum_{k =0}^{\text{nOctaves}} \frac {1}{2 ^k} }
 $$
+
 where $M$ is the matrix, $x$ and $y$ are the scaled coordinates from origin, $PN$ is the Perlin noise function, and $\text{nOctaves}$ is the number of octaves to evaluate.
 
 #### Terrain generation
@@ -385,12 +390,14 @@ First, the algorithm decides the city center by randomly choosing locations with
 The first of the two distance functions is the so-called "*Cosine down to zero*." It decreases the values in a sinusoidal trend until the threshold is reached; then it always returns zero. This function introduces a decay in the Perlin noise values that depends on the distance between the current position and that of the city centre, and is very useful for two cases: zeroing out the values outside the city radius and smoothing out the others the farther they are from the centre.
 
 The *Cosine down to zero* function is defined by the following formula:
+
 $$
 f(net) = \begin{cases}
 0 & \text{if }\  net > 2\sigma \\
 \frac{\cos\left( \frac \pi {2\sigma}  net \right) + 1}{2} & \text{otherwise}
 \end{cases}
 $$
+
 where $net$ is the distance between the current position and the city centre, and $\sigma$ is half the city radius.
 
 <figure align = "center">
@@ -401,9 +408,11 @@ where $net$ is the distance between the current position and the city centre, an
 The second distance function is a *Gaussian* function. It decreases values in a Gaussian bell-shaped trend until it reaches the threshold; then it slowly tends to zero. This function was introduced to decay the values of population density with a high elevation difference from the city center, and it is useful to lower the values of those areas that are on high terrain and to discourage the generation of roads and buildings in those areas. 
 
 The *Gaussian* function is defined by the following formula:
+
 $$
 f(net) = e ^{- \frac {net^2}{2 \sigma ^2}}
 $$
+
 where $net$ is the distance between the current position and the city centre, and $\sigma$ is half the city radius.
 
 <figure align = "center">
