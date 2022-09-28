@@ -235,50 +235,7 @@ It will generate buildings similar to those used for offices, with two possible 
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models needed, and some modifications to enhance uniqueness across generations, such as randomization of building height.
 
-$$
-\begin{align}
-& \text{PRIORITY 1} \\
-& 1: \ \quad \text{lot}\leadsto Scale(1r, office\_building\_height \cdot Rand(0.5, 1), 1r) \ \\ & \qquad \qquad \qquad Subdiv(Z , Scope(Z, \text{Size}) \cdot Rand(0.3,0.5), 1r ) \{ \text{facades} \ |\  \text{sidewings}  \} \\
-
-& 2: \quad \text{sidewings} \leadsto Subdiv(X, Scope(X, \text{Size}) \cdot Rand(0.2,0.6), 1r) \{\text{sidewing} \ | \ \epsilon \} \\ &
-\qquad \qquad \qquad \qquad \quad Subdiv(X,1r, Scope(X, \text{Size}) \cdot Rand(0.2,0.6)) \{\epsilon \ | \ \text{sidewing} \} \\ 
-
-& 3: \quad \text{sidewing} \leadsto Scale(1r,1r,Scope(Z, \text{Size}) \cdot Rand(0.4,1))  \ \text{facades} : 0.5 \\
-& \qquad \qquad \qquad \ \leadsto Scale(1r, Scope(Y, \text{Size}) \cdot Rand(0.2,0.9), Scope(Z, \text{Size}) \cdot Rand(0.4,1)) \ \text{facades} : 0.3 \\
-& \qquad \qquad \qquad \ \leadsto \epsilon : 0.2 \\
-
-& 4: \quad \text{facades} \leadsto Comp(\text{Faces}, 4, 1, 1) \{ \text{facade} \ |\ \text{flooring} \ | \ \text{roof} \} 
-
-\\ \\ 
-
-& \text{PRIORITY 2} \\
-& 5: \ \quad \text{facade} \leadsto Subdiv(Y, groundfloor\_height, 1r, topfloor\_height) \{ \text{groundfloor} \ | \ \text{floors} \ | \ \text{topfloors} \} \\ 
-& 6: \ \quad \text{groundfloor} : Visible() \leadsto Subdiv(X, 1r, entrance\_width, 1r) \{ \text{groundtiles} \ | \ \text{entrance} \ | \ \text{groundtiles} \} \\
-& 17: \quad \text{topfloors} \leadsto Repeat(Y, topfloor\_height) \{ \text{floor} \} 
-
-\\ \\ 
-
-& \text{PRIORITY 3} \\
-& 7: \ \quad \text{groundfloor} \leadsto \text{floor} \\
-& 8: \ \quad \text{floors} \leadsto Repeat(Y, floor\_height) \{ \text{floor} \} \\
-& 9: \ \quad \text{floor} \leadsto Repeat(X, tile\_width) \{ \text{tile} \} \\
-& 10: \quad \text{tile} \leadsto Subdiv(X, 1r, window\_width, 1r) \{ \text{wall} \ | \  \\
-& \qquad \qquad \qquad \quad Subdiv(Y, 2r, window\_height, 1r) \{ \text{wall} \ | \ \text{window} \ | \ \text{wall} \}  \ | \ \text{wall} \} \\
-& 11: \quad \text{window} : Occlusion(\text{noparent} )\neq \text{None} \leadsto \text{wall} \\ 
-& 12: \quad \text{window} \leadsto \epsilon \\
-& 13: \quad \text{entrance} \leadsto Subdiv(X, 1r, officedoor\_width, 1r) \{ \text{wall} \ | \  \\
-& \qquad \qquad \qquad \qquad \quad Subdiv(Y, officedoor\_height, 1r) \{ \text{door} \ | \ \text{wall} \}  \ | \ \text{wall} \} \\
-& 14: \quad \text{door} \leadsto \epsilon \\
-& 15: \quad \text{wall} \leadsto Scale(1r,1r, wall\_depth) \ SpawnModel(\text{"Wall"}, \text{"cube"}) \\
-& 16: \quad \text{groundtiles} \leadsto Repeat(X, window\_spacing) \{ \text{tile} \} \\
-& 18: \quad \text{flooring} \leadsto Scale(1r,1r,flooring\_depth) \ SpawnModel(\text{"Flooring"}, \text{"cube"}) \\
-& 19: \quad \text{roof} \leadsto Comp(\text{Edges}) \{ \text{roofEdge} \} \ \\
-& \qquad \qquad \qquad \quad Scale(1r,1r,roof\_depth) \ SpawnModel(\text{"Roof Flooring"}, \text{"cube"}) \\
-& 20: \quad \text{roofEdge} \leadsto Scale(1r, wall\_depth, -1 \cdot (roof\_depth + roofEdge\_height)) \\
-& \qquad \qquad \qquad \qquad \quad SpawnModel(\text{"Roof Edge"}, \text{"cube"}) \\
-
-\end{align}
-$$
+![ruleset office building](./report-assets/ruleset office building.jpeg)
 
 | <img src="./report-assets/image-20220906152940976-2470984.jpeg" width = "200" /> | <img src="./report-assets/image-20220906153449205-2471290.png" width = "200" /> |
 | :----------------------------------------------------------: | :----------------------------------------------------------: |
@@ -291,51 +248,7 @@ Generate residential houses in three possible combinations (each with the same p
 
 This grammar is inspired by the model of the same name presented by Müller, with some simplifications due to the additional models required, and slight modifications to enhance the uniqueness between generations, in this case given by the three possible aspects. 
 
-$$
-\begin{align}
-& \text{PRIORITY 1} \\
-& 1: \ \ \quad \text{footprint}\leadsto Scale(1r, building\_floor\_height, 1r) \ \text{facades} \\ & \qquad \qquad \qquad \qquad \quad Move(0,building\_floor\_height, 0) \ \text{top} \\
-
-& 18: \quad \text{top} \leadsto Comp(\text{Side Faces}) \{ \text{tiles} \} \ Move(0,building\_floor\_height, 0)  \\ &
-\qquad \qquad \qquad \quad Roof(\text{Hipped}, roof\_angle) \{\text{roof} \} : 0.4  \\ &
-\qquad \qquad \ \leadsto Roof(\text{Hipped}, roof\_angle) \{\text{roof} \} : 0.3 \\ &
-\qquad \qquad \ \leadsto \text{middleRoof}  \\ 
-& \qquad \qquad \qquad \quad Move( {Scope(X, \text{Size}) \cdot (1 - topfloor\_scaleOffset)} \ / \ 2 ,\ 0, \\ & \qquad \qquad \qquad \qquad \qquad \quad  {Scope(Z, \text{Size}) \cdot (1 - topfloor\_scaleOffset)} \ / \ 2 )  \\ 
-& \qquad \qquad \qquad \quad Scale(Scope(X, \text{Size}) \cdot topfloor\_scaleOffset , 1r, \\ & \qquad \qquad \qquad \qquad \qquad \quad Scope(Z, \text{Size}) \cdot topfloor\_scaleOffset ) \\ 
-& \qquad \qquad \qquad \quad Comp(\text{Side Faces}) \{ \text{tiles} \} \\ 
-& \qquad \qquad \qquad \quad Move(0,building\_floor\_height, 0)\ Roof(\text{Hipped}, roof\_angle) \{\text{roof} \} : 0.3 \\
-
-& 19: \quad \text{middleRoof}\leadsto Scale(1r, 0, 1r) \ Roof(\text{Hipped}, roof\_angle \cdot topfloor\_scaleOffset)  \{\text{roof} \} : 0.5 \\ &
-\qquad \qquad \qquad \qquad \leadsto Comp(\text{Bottom Edges}) \{ \text{roofEdge} \} \\ 
-& \qquad \qquad \qquad \qquad \qquad \ Scale(1r, 0, 1r) \ Comp(\text{Face}, 6) \{\text{flooring} \}
-
-\\ \\ 
-
-& \text{PRIORITY 2} \\
-& 2: \ \ \quad \text{facades}\leadsto Comp(\text{Side Faces}) \{\text{facade} \} \ Comp(\text{Face}, 5) \{\text{flooring} \} \\
-
-& 3: \ \ \quad \text{facade} : Visible() \leadsto Subdiv(X, 1r, door\_width \cdot 2) \{\text{tiles} \ | \ \text{entrance} \} : 0.5 \\ &
-\qquad \qquad \qquad \qquad \qquad \  \leadsto Subdiv(X, door\_width \cdot 2, 1r) \{\text{entrance} \ | \ \text{tiles} \} : 0.5 \\ 
-
-& 4: \ \ \quad \text{facade} \leadsto \text{tiles}\\ 
-& 5: \ \ \quad \text{tiles} \leadsto Repeat(X, window\_spacing) \{ \text{tile} \} \\
-& 6: \ \ \quad \text{tile} \leadsto Subdiv(X, 1r, window\_width, 1r) \{ \text{wall} \ | \  \\
-& \qquad \qquad \qquad \quad Subdiv(Y, 2r, window\_height, 1r) \{ \text{wall} \ | \ \text{window} \ | \ \text{wall} \}  \ | \ \text{wall} \} \\
-& 7:\ \ \quad \text{window} : Occlusion(\text{noparent} )\neq \text{None} \leadsto \text{wall} \\ 
-& 8:\ \ \quad \text{window} \leadsto \epsilon \\
-& 9:\ \ \quad \text{entrance} \leadsto Subdiv(X, 1r, door\_width, 1r) \{ \text{wall} \ | \  \\
-& \qquad \qquad \qquad \qquad \quad Subdiv(Y, door\_height, 1r) \{ \text{door} \ | \ \text{wall} \}  \ | \ \text{wall} \} \\
-& 10: \quad \text{door} \leadsto \epsilon \\
-& 11: \quad \text{wall} \leadsto Scale(1r,1r, wall\_depth) \ SpawnModel(\text{"Wall"}, \text{"cube"}) \\
-& 17: \quad \text{flooring} \leadsto Scale(1r,1r,flooring\_depth) \ SpawnModel(\text{"Flooring"}, \text{"cube"}) \\
-& 20: \quad \text{roofEdge} \leadsto Scale(1r, roofEdge\_height, wall\_depth / 2) \ SpawnModel(\text{"Roof Edge"}, \text{"cube"}) \\
-
-\\ \\ 
-& \text{PRIORITY 3} \\
-& 12: \quad \text{roof} \leadsto SpawnModel(\text{"Roof"}, \text{"Hipped Roof"})
-
-\end{align}
-$$
+![ruleset simple building](./report-assets/ruleset simple building.jpeg)
 
 <figure align = "center">
 <img src="./report-assets/image-20220906165326650.jpeg" alt="image-20220906165326650" style="zoom:50%;" />
