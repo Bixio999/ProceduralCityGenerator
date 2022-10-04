@@ -18,7 +18,7 @@ The aim of this paper is to briefly explain the concept of the algorithm, then i
 
 ### Introduction
 
-Procedural content generation was, and still is, an innovative and effective approach to creating unique report-assets and graphic elements without the need to manually define them. The main idea was to create content using rules based on mathematical patterns or generic descriptions of how to combine pre-generated resources, and execute them with a touch of randomness that leads to unpredictable and unique results. 
+Procedural content generation was, and still is, an innovative and effective approach to creating unique assets and graphic elements without the need to manually define them. The main idea was to create content using rules based on mathematical patterns or generic descriptions of how to combine pre-generated resources, and execute them with a touch of randomness that leads to unpredictable and unique results. 
 
 On the other hand, procedural content generation needs computational power to handle complex models that can create more realistic outputs. This is the reason why modeling and visualizing systems that offer the possibility to create large content is one of the most discussed reasearch topic for computer graphics. Thanks to technological progress and research, we can now rely on much more power and optimizations that let us be able to push the limits of content generation. 
 
